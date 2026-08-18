@@ -1,4 +1,4 @@
-local library, themes = loadstring(game:HttpGet("https://raw.githubusercontent.com/multyplyy/font-tahoma/refs/heads/main/Library.lua"))()
+local library, themes = loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/LIB_RED_TK_PC"))()
 
 local dim2 = UDim2.new
 local hex = Color3.fromHex 
