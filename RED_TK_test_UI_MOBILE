@@ -1,11 +1,11 @@
-local GITHUB_RAW = "https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/main/"
+local GITHUB_RAW = "https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/"
 
 local uis = game:GetService("UserInputService")
 local is_mobile = uis.TouchEnabled and not uis.KeyboardEnabled
 
 local library = loadstring(game:HttpGet(
-    is_mobile and (GITHUB_RAW .. "Library_Mobile.lua")
-              or  (GITHUB_RAW .. "Library_PC.lua")
+    is_mobile and ("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/LIB_RED_TK_Mobile")
+              or  ("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/LIB_RED_TK_PC")
 ))()
 
 local loader = library:show_loader("TokaiHub", 2.5)
