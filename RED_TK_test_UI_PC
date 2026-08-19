@@ -1,6 +1,6 @@
-local GITHUB_RAW = "https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/main/"
+local GITHUB_RAW = "https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/"
 
-local library = loadstring(game:HttpGet(GITHUB_RAW .. "Library_PC.lua"))()
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/LIB_RED_TK_PC"))()
 
 local loader = library:show_loader("TokaiHub", 2.5)
 
