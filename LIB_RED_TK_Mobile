@@ -425,6 +425,80 @@ local uis = game:GetService("UserInputService")
             end)
         end
 
+        function library:show_loader(title, duration)
+            duration = duration or 3
+            local lsgui = library:create("ScreenGui", {
+                Parent = coregui; Name = ""; Enabled = true;
+                DisplayOrder = 9999999; IgnoreGuiInset = true;
+                ZIndexBehavior = Enum.ZIndexBehavior.Global;
+            })
+            local bg = library:create("Frame", {
+                Parent = lsgui; Size = dim2(1,0,1,0);
+                BackgroundColor3 = rgb(6,6,8); BorderSizePixel = 0; ZIndex = 1; Name = "";
+            })
+            library:create("UIGradient", {
+                Parent = bg;
+                Color = ColorSequence.new{
+                    ColorSequenceKeypoint.new(0, rgb(6,6,8)),
+                    ColorSequenceKeypoint.new(1, rgb(14,14,18))
+                };
+                Rotation = 135;
+            })
+            local tlbl = library:create("TextLabel", {
+                Parent = bg; Size = dim2(1,0,0,50); Position = dim2(0,0,0.42,0);
+                BackgroundTransparency = 1; Text = title or "TokaiHub";
+                TextColor3 = rgb(255,255,255); TextTransparency = 1;
+                Font = Enum.Font.GothamBold; TextSize = 32; ZIndex = 3; Name = "";
+            })
+            local slbl = library:create("TextLabel", {
+                Parent = bg; Size = dim2(1,0,0,20); Position = dim2(0,0,0.42,54);
+                BackgroundTransparency = 1; Text = "Initializing...";
+                TextColor3 = themes.preset.accent; TextTransparency = 1;
+                Font = Enum.Font.Gotham; TextSize = 13; ZIndex = 3; Name = "";
+            })
+            local bbg = library:create("Frame", {
+                Parent = bg; Size = dim2(0,260,0,2); Position = dim2(0.5,-130,0.42,88);
+                BackgroundColor3 = rgb(24,24,28); BorderSizePixel = 0; ZIndex = 2; Name = "";
+            })
+            library:create("UICorner", {Parent = bbg; CornerRadius = UDim.new(1,0)})
+            local bfill = library:create("Frame", {
+                Parent = bbg; Size = dim2(0,0,1,0);
+                BackgroundColor3 = themes.preset.accent; BorderSizePixel = 0; ZIndex = 3; Name = "";
+            })
+            library:create("UICorner", {Parent = bfill; CornerRadius = UDim.new(1,0)})
+            local msgs = {"Initializing...","Loading modules...","Applying theme...","Almost ready..."}
+            local p1 = duration * 0.3
+            local p2 = duration * 0.5
+            local p3 = duration * 0.2
+            task.spawn(function()
+                task.wait(0.08)
+                library:tween(tlbl, {TextTransparency = 0}, Enum.EasingStyle.Quint, p1)
+                task.wait(p1 * 0.55)
+                library:tween(slbl, {TextTransparency = 0}, Enum.EasingStyle.Quad, 0.45)
+                task.wait(p1 * 0.45)
+                for i = 1, 40 do
+                    task.wait(p2 / 40)
+                    pcall(function()
+                        bfill.Size = dim2(i/40, 0, 1, 0)
+                        slbl.Text = msgs[math.clamp(math.ceil(i/10),1,4)]
+                    end)
+                end
+                task.wait(0.12)
+                library:tween(tlbl,  {TextTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(slbl,  {TextTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(bbg,   {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(bfill, {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(bg,    {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, p3)
+                task.wait(p3 + 0.1)
+                pcall(function() lsgui:Destroy() end)
+            end)
+            return {
+                set_text = function(t) pcall(function() tlbl.Text = t end) end,
+                set_sub  = function(t) pcall(function() slbl.Text = t end) end,
+                destroy  = function()  pcall(function() lsgui:Destroy() end) end,
+            }
+        end
+
         function library:window(properties)
             library._search_index = {}
             library._search_pages = {}
@@ -444,7 +518,7 @@ local uis = game:GetService("UserInputService")
                 suffix = properties.suffix or properties.Suffix or "tech";
                 name = properties.name or properties.Name or "nebula";
                 game_name = properties.gameInfo or properties.game_info or properties.GameInfo or "Milenium for Counter-Strike: Global Offensive";
-                size = properties.size or properties.Size or (is_mobile and dim2(0, 480, 0, 240) or dim2(0, 480, 0, 360));
+                size = properties.size or properties.Size or (is_mobile and dim2(0, 360, 0, 480) or dim2(0, 700, 0, 565));
                 selected_tab;
                 items = {};
 
@@ -616,7 +690,7 @@ local uis = game:GetService("UserInputService")
                     BackgroundTransparency = 1;
                     Name = "\0";
                     BorderColor3 = rgb(0, 0, 0);
-                    Size = dim2(0, 140, 1, -25);
+                    Size = dim2(0, 130, 1, -25);
                     BorderSizePixel = 0;
                     ClipsDescendants = true;
                     BackgroundColor3 = rgb(14, 14, 16)
@@ -685,9 +759,9 @@ local uis = game:GetService("UserInputService")
                     Parent = items[ "main" ];
                     Name = "\0";
                     BackgroundTransparency = 1;
-                    Position = dim2(0, 140, 0, 0);
+                    Position = dim2(0, 130, 0, 0);
                     BorderColor3 = rgb(0, 0, 0);
-                    Size = dim2(1, -140, 0, 56);
+                    Size = dim2(1, -130, 0, 56);
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(255, 255, 255)
                 }); cfg.multi_holder = items[ "multi_holder" ];
@@ -724,9 +798,9 @@ local uis = game:GetService("UserInputService")
                     Parent = items[ "main" ];
                     Name = "\0";
                     BackgroundTransparency = 1;
-                    Position = dim2(0, 140, 0, 56);
+                    Position = dim2(0, 130, 0, 56);
                     BorderColor3 = rgb(0, 0, 0);
-                    Size = dim2(1, -140, 1, -81);
+                    Size = dim2(1, -130, 1, -81);
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(14, 14, 16);
                     ZIndex = 2;
@@ -853,7 +927,7 @@ local uis = game:GetService("UserInputService")
                     Name = "\0";
                     Visible = false;
                     BackgroundTransparency = 1;
-                    Position = dim2(0, 140, 0, 56);
+                    Position = dim2(0, 130, 0, 56);
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(1, -216, 1, -101);
                     BorderSizePixel = 0;
@@ -1150,7 +1224,7 @@ local uis = game:GetService("UserInputService")
                 library:tween(items[ "button" ], {BackgroundTransparency = 0})
                 library:tween(items[ "icon" ], {ImageColor3 = themes.preset.accent})
                 library:tween(items[ "name" ], {TextColor3 = rgb(255, 255, 255)})
-                library:tween(items[ "tab_holder" ], {Size = dim2(1, -140, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
+                library:tween(items[ "tab_holder" ], {Size = dim2(1, -130, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
                 
                 items[ "tab_holder" ].Visible = true 
                 items[ "tab_holder" ].Parent = self.items[ "main" ]
