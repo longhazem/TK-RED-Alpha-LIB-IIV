@@ -58,7 +58,7 @@ local uis = game:GetService("UserInputService")
     local concat = table.concat
 
     getgenv().library = {
-        directory = "TokaiHub",
+        directory = "scprp_millenium",
         folders = {
             "/fonts",
             "/configs",
@@ -970,7 +970,7 @@ local uis = game:GetService("UserInputService")
             if not library["keybind_gui"] then
                 library["keybind_gui"] = library:create("ScreenGui", {
                     Parent = coregui;
-                    Name = "TokaiHub_keybinds";
+                    Name = "multyhub_keybinds";
                     Enabled = list.options.enabled == true;
                     ZIndexBehavior = Enum.ZIndexBehavior.Global;
                     IgnoreGuiInset = true;
@@ -1536,7 +1536,7 @@ local uis = game:GetService("UserInputService")
                     clock_24h = true,
                     show_seconds = true,
                     date_format = "DD/MM/YYYY",
-                    watermark = "TokaiHub",
+                    watermark = "MultyHub",
                     position = nil,
                     items = {
                         fps = true, avg_fps = false, min_fps = false, max_fps = false,
@@ -1611,7 +1611,7 @@ local uis = game:GetService("UserInputService")
                 if not library["info_gui"] then
                     library["info_gui"] = library:create("ScreenGui", {
                         Parent = coregui;
-                        Name = "TokaiHub_info";
+                        Name = "multyhub_info";
                         Enabled = info.options.enabled == true;
                         ZIndexBehavior = Enum.ZIndexBehavior.Global;
                         IgnoreGuiInset = true;
@@ -1691,7 +1691,7 @@ local uis = game:GetService("UserInputService")
                     Parent = items["header"];
                     Name = "\0";
                     FontFace = fonts.font;
-                    Text = tostring(info.options.watermark or "TokaiHub");
+                    Text = tostring(info.options.watermark or "MultyHub");
                     TextColor3 = rgb(245, 245, 245);
                     TextSize = 15;
                     TextXAlignment = Enum.TextXAlignment.Left;
@@ -1877,13 +1877,13 @@ local uis = game:GetService("UserInputService")
                 local show_title = opts.show_title ~= false
                 items["header"].Visible = show_title
                 items["line"].Visible = show_title
-                items["title"].Text = tostring(opts.watermark or "TokaiHub")
+                items["title"].Text = tostring(opts.watermark or "MultyHub")
                 items["title_accent"].TextColor3 = themes.preset.accent
 
                 
                 
                 if show_title then
-                    local wm = tostring(opts.watermark or "TokaiHub")
+                    local wm = tostring(opts.watermark or "MultyHub")
                     if info._title_src ~= wm then
                         info._title_src = wm
                         task.spawn(function()
@@ -2383,7 +2383,7 @@ local uis = game:GetService("UserInputService")
                     clock_24h = true,
                     show_seconds = true,
                     date_format = "DD/MM/YYYY",
-                    watermark = library._info_watermark or "TokaiHub",
+                    watermark = library._info_watermark or "MultyHub",
                     items = {
                         fps = true,
                         avg_fps = false,
@@ -2523,7 +2523,7 @@ local uis = game:GetService("UserInputService")
     
     
         function library:show_loader(title, duration)
-            duration = duration or 2.5
+            duration = duration or 3
             local lsgui = library:create("ScreenGui", {
                 Parent = coregui; Name = ""; Enabled = true;
                 DisplayOrder = 9999999; IgnoreGuiInset = true;
@@ -2531,52 +2531,78 @@ local uis = game:GetService("UserInputService")
             })
             local bg = library:create("Frame", {
                 Parent = lsgui; Size = dim2(1,0,1,0);
-                BackgroundColor3 = rgb(14,14,16); BorderSizePixel = 0; ZIndex = 1; Name = "";
+                BackgroundColor3 = rgb(6,6,8); BorderSizePixel = 0; ZIndex = 1; Name = "";
             })
             library:create("UIGradient", {
                 Parent = bg;
-                Color = ColorSequence.new{ColorSequenceKeypoint.new(0, rgb(14,14,16)), ColorSequenceKeypoint.new(1, rgb(21,21,23))};
+                Color = ColorSequence.new{
+                    ColorSequenceKeypoint.new(0, rgb(6,6,8)),
+                    ColorSequenceKeypoint.new(1, rgb(14,14,18))
+                };
                 Rotation = 135;
             })
-            local logo = library:create("ImageLabel", {
-                Parent = bg; Size = dim2(0,72,0,72); Position = dim2(0.5,-36,0.37,0);
-                BackgroundTransparency = 1; Image = "rbxassetid://115194686863276"; ZIndex = 2; Name = "";
-            })
             local tlbl = library:create("TextLabel", {
-                Parent = bg; Size = dim2(1,0,0,24); Position = dim2(0,0,0.5,-12);
-                BackgroundTransparency = 1; Text = title or "Loading...";
-                TextColor3 = rgb(245,245,245); Font = Enum.Font.GothamBold; TextSize = 15; ZIndex = 2; Name = "";
+                Parent = bg;
+                Size = dim2(1, 0, 0, 50);
+                Position = dim2(0, 0, 0.42, 0);
+                BackgroundTransparency = 1;
+                Text = title or "TokaiHub";
+                TextColor3 = rgb(255, 255, 255);
+                TextTransparency = 1;
+                Font = Enum.Font.GothamBold;
+                TextSize = 32;
+                ZIndex = 3; Name = "";
+            })
+            local slbl = library:create("TextLabel", {
+                Parent = bg;
+                Size = dim2(1, 0, 0, 20);
+                Position = dim2(0, 0, 0.42, 54);
+                BackgroundTransparency = 1;
+                Text = "Initializing...";
+                TextColor3 = themes.preset.accent;
+                TextTransparency = 1;
+                Font = Enum.Font.Gotham;
+                TextSize = 13;
+                ZIndex = 3; Name = "";
             })
             local bbg = library:create("Frame", {
-                Parent = bg; Size = dim2(0,240,0,3); Position = dim2(0.5,-120,0.5,20);
-                BackgroundColor3 = rgb(36,36,37); BorderSizePixel = 0; ZIndex = 2; Name = "";
+                Parent = bg;
+                Size = dim2(0, 260, 0, 2);
+                Position = dim2(0.5, -130, 0.42, 88);
+                BackgroundColor3 = rgb(24, 24, 28);
+                BorderSizePixel = 0; ZIndex = 2; Name = "";
             })
-            library:create("UICorner", {Parent = bbg; CornerRadius = UDim.new(1,0)})
+            library:create("UICorner", {Parent = bbg; CornerRadius = UDim.new(1, 0)})
             local bfill = library:create("Frame", {
-                Parent = bbg; Size = dim2(0,0,1,0);
-                BackgroundColor3 = themes.preset.accent; BorderSizePixel = 0; ZIndex = 3; Name = "";
+                Parent = bbg; Size = dim2(0, 0, 1, 0);
+                BackgroundColor3 = themes.preset.accent;
+                BorderSizePixel = 0; ZIndex = 3; Name = "";
             })
-            library:create("UICorner", {Parent = bfill; CornerRadius = UDim.new(1,0)})
-            local slbl = library:create("TextLabel", {
-                Parent = bg; Size = dim2(1,0,0,14); Position = dim2(0,0,0.5,30);
-                BackgroundTransparency = 1; Text = "Initializing...";
-                TextColor3 = rgb(90,90,94); Font = Enum.Font.Gotham; TextSize = 11; ZIndex = 2; Name = "";
-            })
+            library:create("UICorner", {Parent = bfill; CornerRadius = UDim.new(1, 0)})
             local msgs = {"Initializing...","Loading modules...","Applying theme...","Almost ready..."}
+            local p1 = duration * 0.3
+            local p2 = duration * 0.5
+            local p3 = duration * 0.2
             task.spawn(function()
+                task.wait(0.08)
+                library:tween(tlbl, {TextTransparency = 0}, Enum.EasingStyle.Quint, p1)
+                task.wait(p1 * 0.55)
+                library:tween(slbl, {TextTransparency = 0}, Enum.EasingStyle.Quad, 0.45)
+                task.wait(p1 * 0.45)
                 for i = 1, 40 do
-                    task.wait(duration / 40)
+                    task.wait(p2 / 40)
                     pcall(function()
-                        bfill.Size = dim2(i/40, 0, 1, 0)
-                        slbl.Text = msgs[math.clamp(math.ceil(i/10),1,4)]
-                        tlbl.TextTransparency = math.max(0, (i-36)/4)
+                        bfill.Size = dim2(i / 40, 0, 1, 0)
+                        slbl.Text = msgs[math.clamp(math.ceil(i / 10), 1, 4)]
                     end)
                 end
-                pcall(function() library:tween(bg, {BackgroundTransparency = 1}) end)
-                for _,v in {tlbl,slbl,bbg,bfill,logo} do
-                    pcall(function() library:tween(v, {BackgroundTransparency=1,TextTransparency=1,ImageTransparency=1}) end)
-                end
-                task.wait(0.35)
+                task.wait(0.12)
+                library:tween(tlbl,  {TextTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(slbl,  {TextTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(bbg,   {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(bfill, {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, p3 * 0.6)
+                library:tween(bg,    {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, p3)
+                task.wait(p3 + 0.1)
                 pcall(function() lsgui:Destroy() end)
             end)
             return {
@@ -2603,7 +2629,7 @@ local uis = game:GetService("UserInputService")
 
             local cfg = {
                 suffix = properties.suffix or properties.Suffix or "tech";
-                name = properties.name or properties.Name or "TokaiHub";
+                name = properties.name or properties.Name or "nebula";
                 game_name = properties.gameInfo or properties.game_info or properties.GameInfo or "Milenium for Counter-Strike: Global Offensive";
                 size = properties.size or properties.Size or dim2(0, 700, 0, 565);
                 selected_tab;
@@ -2614,7 +2640,7 @@ local uis = game:GetService("UserInputService")
             
             library[ "items" ] = library:create( "ScreenGui" , {
                 Parent = coregui;
-                Name = "TokaiHub";
+                Name = "multyhub";
                 Enabled = true;
                 ZIndexBehavior = Enum.ZIndexBehavior.Global;
                 IgnoreGuiInset = true;
@@ -2623,7 +2649,7 @@ local uis = game:GetService("UserInputService")
 
             library[ "other" ] = library:create( "ScreenGui" , {
                 Parent = coregui;
-                Name = "TokaiHub";
+                Name = "multyhub";
                 Enabled = false;
                 ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
                 IgnoreGuiInset = true;
@@ -2631,7 +2657,7 @@ local uis = game:GetService("UserInputService")
 
             library[ "notif_gui" ] = library:create( "ScreenGui" , {
                 Parent = coregui;
-                Name = "TokaiHub";
+                Name = "multyhub";
                 Enabled = true;
                 ZIndexBehavior = Enum.ZIndexBehavior.Global;
                 IgnoreGuiInset = true;
