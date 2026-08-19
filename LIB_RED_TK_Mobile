@@ -58,7 +58,7 @@ local uis = game:GetService("UserInputService")
     local concat = table.concat
 
     getgenv().library = {
-        directory = "TokaiHub",
+        directory = "scprp_millenium",
         folders = {
             "/fonts",
             "/configs",
@@ -970,7 +970,7 @@ local uis = game:GetService("UserInputService")
             if not library["keybind_gui"] then
                 library["keybind_gui"] = library:create("ScreenGui", {
                     Parent = coregui;
-                    Name = "TokaiHub_keybinds";
+                    Name = "multyhub_keybinds";
                     Enabled = list.options.enabled == true;
                     ZIndexBehavior = Enum.ZIndexBehavior.Global;
                     IgnoreGuiInset = true;
@@ -1536,7 +1536,7 @@ local uis = game:GetService("UserInputService")
                     clock_24h = true,
                     show_seconds = true,
                     date_format = "DD/MM/YYYY",
-                    watermark = "TokaiHub",
+                    watermark = "MultyHub",
                     position = nil,
                     items = {
                         fps = true, avg_fps = false, min_fps = false, max_fps = false,
@@ -1611,7 +1611,7 @@ local uis = game:GetService("UserInputService")
                 if not library["info_gui"] then
                     library["info_gui"] = library:create("ScreenGui", {
                         Parent = coregui;
-                        Name = "TokaiHub_info";
+                        Name = "multyhub_info";
                         Enabled = info.options.enabled == true;
                         ZIndexBehavior = Enum.ZIndexBehavior.Global;
                         IgnoreGuiInset = true;
@@ -1691,7 +1691,7 @@ local uis = game:GetService("UserInputService")
                     Parent = items["header"];
                     Name = "\0";
                     FontFace = fonts.font;
-                    Text = tostring(info.options.watermark or "TokaiHub");
+                    Text = tostring(info.options.watermark or "MultyHub");
                     TextColor3 = rgb(245, 245, 245);
                     TextSize = 15;
                     TextXAlignment = Enum.TextXAlignment.Left;
@@ -1877,13 +1877,13 @@ local uis = game:GetService("UserInputService")
                 local show_title = opts.show_title ~= false
                 items["header"].Visible = show_title
                 items["line"].Visible = show_title
-                items["title"].Text = tostring(opts.watermark or "TokaiHub")
+                items["title"].Text = tostring(opts.watermark or "MultyHub")
                 items["title_accent"].TextColor3 = themes.preset.accent
 
                 
                 
                 if show_title then
-                    local wm = tostring(opts.watermark or "TokaiHub")
+                    local wm = tostring(opts.watermark or "MultyHub")
                     if info._title_src ~= wm then
                         info._title_src = wm
                         task.spawn(function()
@@ -2383,7 +2383,7 @@ local uis = game:GetService("UserInputService")
                     clock_24h = true,
                     show_seconds = true,
                     date_format = "DD/MM/YYYY",
-                    watermark = library._info_watermark or "TokaiHub",
+                    watermark = library._info_watermark or "MultyHub",
                     items = {
                         fps = true,
                         avg_fps = false,
@@ -2603,9 +2603,9 @@ local uis = game:GetService("UserInputService")
 
             local cfg = {
                 suffix = properties.suffix or properties.Suffix or "tech";
-                name = properties.name or properties.Name or "TokaiHub";
+                name = properties.name or properties.Name or "nebula";
                 game_name = properties.gameInfo or properties.game_info or properties.GameInfo or "Milenium for Counter-Strike: Global Offensive";
-                size = properties.size or properties.Size or dim2(0, 700, 0, 565);
+                size = properties.size or properties.Size or (is_mobile and dim2(0, 360, 0, 520) or dim2(0, 700, 0, 565));
                 selected_tab;
                 items = {};
 
@@ -2614,7 +2614,7 @@ local uis = game:GetService("UserInputService")
             
             library[ "items" ] = library:create( "ScreenGui" , {
                 Parent = coregui;
-                Name = "TokaiHub";
+                Name = "multyhub";
                 Enabled = true;
                 ZIndexBehavior = Enum.ZIndexBehavior.Global;
                 IgnoreGuiInset = true;
@@ -2664,7 +2664,13 @@ local uis = game:GetService("UserInputService")
                 btn_frame.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.Touch and tap_start then
                         if (input.Position - tap_start).Magnitude < 12 then
-                            pcall(function() window.toggle_menu() end)
+                            pcall(function()
+                                local items = library["items"]
+                                if items then
+                                    items.Enabled = not items.Enabled
+                                    library._mobile_toggle_btn.Text = items.Enabled and "\xe2\x9c\x95" or "\xe2\x98\xb0"
+                                end
+                            end)
                         end
                         tap_start = nil
                     end
@@ -2673,7 +2679,7 @@ local uis = game:GetService("UserInputService")
 
             library[ "other" ] = library:create( "ScreenGui" , {
                 Parent = coregui;
-                Name = "TokaiHub";
+                Name = "multyhub";
                 Enabled = false;
                 ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
                 IgnoreGuiInset = true;
@@ -2681,7 +2687,7 @@ local uis = game:GetService("UserInputService")
 
             library[ "notif_gui" ] = library:create( "ScreenGui" , {
                 Parent = coregui;
-                Name = "TokaiHub";
+                Name = "multyhub";
                 Enabled = true;
                 ZIndexBehavior = Enum.ZIndexBehavior.Global;
                 IgnoreGuiInset = true;
@@ -5554,9 +5560,8 @@ local uis = game:GetService("UserInputService")
 
             items[ "button" ].MouseButton1Down:Connect(function()
                 pcall(function()
-                    local s = items["button"].Size
-                    library:tween(items["button"], {Size = dim2(s.X.Scale, s.X.Offset-2, s.Y.Scale, s.Y.Offset-2)}, Enum.EasingStyle.Quad, 0.08)
-                    task.delay(0.1, function() pcall(function() library:tween(items["button"], {Size = s}, Enum.EasingStyle.Quad, 0.1) end) end)
+                    items["name"].TextTransparency = 0.4
+                    task.delay(0.12, function() pcall(function() items["name"].TextTransparency = 0 end) end)
                 end)
             end)
             items[ "button" ].MouseButton1Click:Connect(function()
