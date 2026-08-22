@@ -1,0 +1,247 @@
+--[[
+    TOKAIHUB - File thử nghiệm
+    Tác giả: @longtokai
+    Thử nghiệm: @dokkimane
+
+    Cách dùng:
+    1. Host TOKAIHUB_Library.lua lên GitHub raw hoặc paste thẳng
+    2. Thay URL bên dưới bằng link raw của mày
+    3. Chạy script này trong executor
+
+    Phím tắt (PC): RightShift hoặc RightControl để ẩn/hiện menu
+    Mobile: Nút "☰ TOKAI" góc trên trái — kéo để di chuyển, tap để ẩn/hiện
+]]
+
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV"))()
+
+-- ── Tạo window ───────────────────────────────────────────────────────
+local window = library:window({
+    name    = "TOKAIHUB",
+    suffix  = "test",
+    gameInfo = "TOKAIHUB - Thử nghiệm",
+})
+
+window:seperator({ name = "Thử Nghiệm" })
+
+-- ── Tab 1: UI Elements (kiểm tra tất cả component) ──────────────────
+local ui_tab = window:tab({ name = "UI Elements" })
+
+local col1 = ui_tab:column({})
+local col2 = ui_tab:column({})
+
+-- Cột trái
+local sec_basic = col1:section({ name = "Cơ Bản", default = true })
+
+sec_basic:label({
+    name = "Nhãn thông tin",
+    info = "Đây là tooltip khi hover. Hoạt động trên PC và mobile."
+})
+
+sec_basic:toggle({
+    name    = "Toggle thường",
+    default = false,
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Toggle thường:", v)
+    end
+})
+
+local toggle_color = sec_basic:toggle({
+    name    = "Toggle + Colorpicker",
+    default = true,
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Toggle color:", v)
+    end
+})
+toggle_color:colorpicker({
+    default = Color3.fromRGB(138, 154, 91),
+    callback = function(c, a)
+        print("[TOKAIHUB] Màu:", c, "Alpha:", a)
+    end
+})
+
+sec_basic:slider({
+    name    = "Slider số nguyên",
+    min     = 0,
+    max     = 100,
+    default = 50,
+    round   = 1,
+    suffix  = "%",
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Slider:", v)
+    end
+})
+
+sec_basic:slider({
+    name    = "Slider thập phân",
+    min     = 0,
+    max     = 1,
+    default = 0.5,
+    round   = 0.01,
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Slider decimal:", v)
+    end
+})
+
+sec_basic:button({
+    name     = "Bấm tôi",
+    callback = function()
+        print("[TOKAIHUB] Button bị bấm!")
+        library:notify("Button hoạt động!", 3)
+    end
+})
+
+-- Cột phải
+local sec_adv = col2:section({ name = "Nâng Cao", default = true })
+
+sec_adv:dropdown({
+    name    = "Dropdown đơn",
+    items   = { "Option A", "Option B", "Option C", "Option D" },
+    default = "Option A",
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Dropdown:", v)
+    end
+})
+
+sec_adv:dropdown({
+    name    = "Dropdown multi",
+    items   = { "Scoped", "Flashed", "Knocked", "Touched" },
+    default = { "Scoped", "Flashed" },
+    multi   = true,
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Multi dropdown:", v)
+    end
+})
+
+sec_adv:textbox({
+    name        = "Nhập văn bản",
+    default     = "",
+    placeholder = "Nhập gì đó...",
+    seperator   = true,
+    callback    = function(v)
+        print("[TOKAIHUB] Textbox:", v)
+    end
+})
+
+sec_adv:keybind({
+    name     = "Keybind thử",
+    default  = Enum.KeyCode.F,
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Keybind fired:", v)
+    end
+})
+
+-- Sub-toggle với settings
+local toggle_sub = sec_adv:toggle({
+    name    = "Toggle có settings",
+    default = false,
+    seperator = true,
+})
+local sub = toggle_sub:settings({})
+sub:slider({ name = "Tốc độ",   min = 0, max = 200, default = 50,  seperator = true })
+sub:slider({ name = "Độ trễ",   min = 0, max = 500, default = 100, seperator = true })
+sub:dropdown({
+    name  = "Chế độ",
+    items = { "Legit", "Rage", "Silent" },
+    default = "Legit",
+    seperator = true
+})
+sub:toggle({ name = "Bật phụ", default = false })
+
+-- ── Tab 2: Mobile Test (kiểm tra drag + touch riêng) ────────────────
+local mobile_tab = window:tab({ name = "Mobile" })
+
+local mcol = mobile_tab:column({})
+local msec = mcol:section({ name = "Kiểm Tra Mobile", default = true })
+
+msec:label({
+    name = "Thông tin thiết bị",
+    info = "Hiển thị loại thiết bị đang dùng"
+})
+
+local device_type = library.IsMobile and "📱 Mobile (Android/iOS)" or "🖥️ PC"
+msec:label({ name = "Thiết bị: " .. device_type })
+
+msec:toggle({
+    name    = "Test touch toggle",
+    default = false,
+    seperator = true,
+    callback = function(v)
+        print("[TOKAIHUB] Touch toggle:", v)
+        library:notify("Touch toggle: " .. tostring(v), 2)
+    end
+})
+
+local touch_slider_val = 50
+msec:slider({
+    name    = "Kéo slider bằng ngón tay",
+    min     = 0,
+    max     = 100,
+    default = touch_slider_val,
+    round   = 1,
+    seperator = true,
+    callback = function(v)
+        touch_slider_val = v
+        print("[TOKAIHUB] Touch slider:", v)
+    end
+})
+
+msec:colorpicker({
+    name    = "Colorpicker touch",
+    default = Color3.fromRGB(100, 180, 255),
+    seperator = true,
+    callback = function(c, a)
+        print("[TOKAIHUB] Touch color:", c)
+    end
+})
+
+msec:button({
+    name = "Notify thử",
+    callback = function()
+        library:notify("TOKAIHUB hoạt động trên " .. device_type .. "!", 4)
+    end
+})
+
+-- ── Tab 3: AutoScale test ────────────────────────────────────────────
+local scale_tab = window:tab({ name = "AutoScale" })
+local scol = scale_tab:column({})
+local ssec = scol:section({ name = "Tuỳ Chỉnh Scale", default = true })
+
+ssec:label({ name = "AutoScale tự động theo độ phân giải màn hình" })
+
+ssec:slider({
+    name    = "Scale multiplier",
+    min     = 0.5,
+    max     = 2.0,
+    default = 1.0,
+    round   = 0.05,
+    seperator = true,
+    callback = function(v)
+        library:SetAutoScaleMultiplier(v)
+        print("[TOKAIHUB] AutoScale multiplier:", v)
+    end
+})
+
+ssec:toggle({
+    name    = "Bật AutoScale",
+    default = true,
+    seperator = true,
+    callback = function(v)
+        library:SetAutoScaleEnabled(v)
+        print("[TOKAIHUB] AutoScale enabled:", v)
+    end
+})
+
+-- ── Notification test khi load xong ─────────────────────────────────
+task.delay(2.5, function()
+    library:notify("TOKAIHUB đã load xong! Thiết bị: " .. device_type, 5)
+end)
+
+print("[TOKAIHUB] Script thử nghiệm chạy xong.")
+print("[TOKAIHUB] IsMobile =", library.IsMobile)
