@@ -562,15 +562,33 @@
             end)
         end
 
+        -- Dedicated ScreenGui for floating buttons — survives menu hide/show
+        if not library._btn_gui then
+            library._btn_gui = Instance.new("ScreenGui")
+            library._btn_gui.Name = "tokaihub_btns"
+            library._btn_gui.Enabled = true
+            library._btn_gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+            library._btn_gui.IgnoreGuiInset = true
+            library._btn_gui.DisplayOrder = 100
+            pcall(function()
+                if type(gethui) == "function" then
+                    library._btn_gui.Parent = gethui()
+                else
+                    library._btn_gui.Parent = coregui
+                end
+            end)
+        end
+
         -- Draggable floating button (Mobile toggle + any floating button)
         function library:add_draggable_button(text, func)
             local tbl = {}
-            local scrGui = library["items"] or coregui
+            -- Always use dedicated btn_gui — never library["items"] which hides with the menu
+            local scrGui = library._btn_gui or coregui
             local holder = library:create("Frame", {
-                BackgroundColor3 = rgb(28, 28, 28),
-                BorderColor3 = rgb(50, 50, 50),
+                BackgroundColor3 = rgb(22, 22, 24),
+                BorderColor3 = rgb(60, 60, 65),
                 Position = dim_offset(6, 6),
-                Size = dim_offset(76, 30),
+                Size = dim_offset(82, 32),
                 ZIndex = 300,
                 Parent = scrGui,
             })
@@ -2758,7 +2776,7 @@
                 suffix = properties.suffix or properties.Suffix or "tech";
                 name = properties.name or properties.Name or "nebula";
                 game_name = properties.gameInfo or properties.game_info or properties.GameInfo or "TOKAIHUB";
-                size = properties.size or properties.Size or dim2(0, 700, 0, 565);
+                size = properties.size or properties.Size or dim2(0, 600, 0, 480);
                 selected_tab;
                 items = {};
 
@@ -2801,6 +2819,8 @@
                     BackgroundColor3 = rgb(14, 14, 16)
                 }); items[ "main" ].Position = dim2(0, items[ "main" ].AbsolutePosition.X, 0, items[ "main" ].AbsolutePosition.Y)
                 library._window_main_frame = items[ "main" ]
+                -- Register for AutoScale — mobile gets 0.72x base so 600px feels right on small screens
+                library:RegisterAutoScaleTarget(items[ "main" ], _IsMobile and 0.72 or 1.0)
 
                 library:create( "UICorner" , {
                     Parent = items[ "main" ];
@@ -3081,21 +3101,54 @@
                 library[ "items" ].Enabled = bool == true
             end
 
-            -- ── Mobile toggle button (only on mobile) ──────────────────────
-            if library.IsMobile then
-                local _mobileBtn = library:add_draggable_button("☰ TOKAI", function()
-                    cfg.toggle_menu()
-                end)
-                _mobileBtn:set_position(6, 6)
-                -- Keep button text in sync with menu state
+            -- ── Toggle button (Mobile = draggable float, PC = fixed top-left) ──
+            do
+                -- Init btn_gui here if window() is called before add_draggable_button
+                if not library._btn_gui then
+                    library._btn_gui = Instance.new("ScreenGui")
+                    library._btn_gui.Name = "tokaihub_btns"
+                    library._btn_gui.Enabled = true
+                    library._btn_gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+                    library._btn_gui.IgnoreGuiInset = true
+                    library._btn_gui.DisplayOrder = 100
+                    pcall(function()
+                        if type(gethui) == "function" then
+                            library._btn_gui.Parent = gethui()
+                        else
+                            library._btn_gui.Parent = coregui
+                        end
+                    end)
+                end
+
+                local _toggleBtn = library:add_draggable_button(
+                    library._menuOpen and "✕ TOKAI" or "☰ TOKAI",
+                    function() cfg.toggle_menu() end
+                )
+                _toggleBtn:set_position(6, 6)
+
+                -- On PC also add a Lock button below it (like obsidian)
+                local _lockBtn
+                if not library.IsMobile then
+                    _lockBtn = library:add_draggable_button("Lock", function(self)
+                        library._drag_locked = not library._drag_locked
+                        self:set_text(library._drag_locked and "Unlock" or "Lock")
+                    end)
+                    _lockBtn:set_position(6, 46)
+                end
+
+                -- Wrap toggle_menu to keep button label in sync
                 local _origToggle = cfg.toggle_menu
                 cfg.toggle_menu = function(bool)
                     _origToggle(bool)
                     local isOpen = library["items"].Enabled
-                    _mobileBtn:set_text(isOpen and "✕ TOKAI" or "☰ TOKAI")
+                    library._menuOpen = isOpen
+                    _toggleBtn:set_text(isOpen and "✕ TOKAI" or "☰ TOKAI")
                 end
+
+                library._toggle_btn = _toggleBtn
+                library._lock_btn = _lockBtn
             end
-            -- ───────────────────────────────────────────────────────────────
+            -- ─────────────────────────────────────────────────────────────────
 
             return setmetatable(cfg, library)
         end
