@@ -2813,11 +2813,25 @@
                     Parent = library[ "items" ];
                     Size = cfg.size;
                     Name = "\0";
-                    Position = dim2(0.5, -cfg.size.X.Offset / 2, 0.5, -cfg.size.Y.Offset / 2);
+                    -- AnchorPoint + fromScale(0.5,0.5) = always perfectly centred regardless of resolution
+                    AnchorPoint = Vector2.new(0.5, 0.5);
+                    Position = UDim2.fromScale(0.5, 0.5);
                     BorderColor3 = rgb(0, 0, 0);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = rgb(14, 14, 16)
-                }); items[ "main" ].Position = dim2(0, items[ "main" ].AbsolutePosition.X, 0, items[ "main" ].AbsolutePosition.Y)
+                    BackgroundColor3 = rgb(14, 14, 16);
+                    -- Start invisible + slightly small for pop-in animation
+                    BackgroundTransparency = 1;
+                })
+                -- Pop-in: fade + scale from 94% (WinWare WindowPopTween style)
+                items[ "main" ].Size = UDim2.fromOffset(
+                    math.floor(cfg.size.X.Offset * 0.94),
+                    math.floor(cfg.size.Y.Offset * 0.94)
+                )
+                task.spawn(function()
+                    task.wait(0.05)
+                    library:tween(items[ "main" ], { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.32)
+                    library:tween(items[ "main" ], { Size = cfg.size }, Enum.EasingStyle.Back, 0.44)
+                end)
                 library._window_main_frame = items[ "main" ]
                 -- Register for AutoScale — mobile gets 0.72x base so 600px feels right on small screens
                 library:RegisterAutoScaleTarget(items[ "main" ], _IsMobile and 0.72 or 1.0)
@@ -3084,21 +3098,41 @@
                 library:resizify(items[ "main" ])
             end
 
-            function cfg.toggle_menu(bool) 
-                -- WIP 
-                -- if cfg.tween then 
-                --     cfg.tween:Cancel()
-                -- end 
-
-                -- items[ "main" ].Size = dim2(items[ "main" ].Size.Scale.X, items[ "main" ].Size.Offset.X - 20, items[ "main" ].Size.Scale.Y, items[ "main" ].Size.Offset.Y - 20)
-                -- library:tween(items[ "tab_holder" ], {Size = dim2(1, -196, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
-                -- cfg.tween = 
-                
+            function cfg.toggle_menu(bool)
                 if bool == nil then
                     bool = not library[ "items" ].Enabled
                 end
 
-                library[ "items" ].Enabled = bool == true
+                local main = items[ "main" ]
+                if bool then
+                    -- Show: fade + pop in from 94% (WinWare WindowPopTween)
+                    library[ "items" ].Enabled = true
+                    if main then
+                        main.Size = UDim2.fromOffset(
+                            math.floor(cfg.size.X.Offset * 0.94),
+                            math.floor(cfg.size.Y.Offset * 0.94)
+                        )
+                        main.BackgroundTransparency = 1
+                        library:tween(main, { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.32)
+                        library:tween(main, { Size = cfg.size }, Enum.EasingStyle.Back, 0.44)
+                    end
+                else
+                    -- Hide: scale to 94% + fade out (WinWare WindowHideTween)
+                    if main then
+                        library:tween(main, {
+                            BackgroundTransparency = 1,
+                            Size = UDim2.fromOffset(
+                                math.floor(cfg.size.X.Offset * 0.94),
+                                math.floor(cfg.size.Y.Offset * 0.94)
+                            )
+                        }, Enum.EasingStyle.Quint, 0.22)
+                        task.delay(0.22, function()
+                            library[ "items" ].Enabled = false
+                        end)
+                    else
+                        library[ "items" ].Enabled = false
+                    end
+                end
             end
 
             -- ── Toggle button (Mobile = draggable float, PC = fixed top-left) ──
@@ -9219,6 +9253,123 @@ do -- Modal Dialog (universal)
 
         return true
     end
+end
+
+
+-- ── notify shorthand (maps to notifications:create_notification) ──────
+function library:notify(title, info, lifetime)
+    if library.notifications and library.notifications.create_notification then
+        library.notifications:create_notification({
+            name     = title or "TOKAIHUB",
+            info     = info  or "",
+            lifetime = lifetime or 3,
+        })
+    end
+end
+
+-- ── set_accent_color: swap accent across all live UI (WinWare RepaintAccent) ──
+function library:set_accent_color(new_color)
+    if typeof(new_color) == "string" then
+        new_color = Color3.fromHex(new_color:gsub("#", ""))
+    end
+    local prev = themes.preset.accent
+    if prev == new_color then return end
+    themes.preset.accent = new_color
+
+    -- Scan every descendant and repaint anything that matches the old accent
+    local gui = library["items"]
+    if not gui then return end
+    local function same(c)
+        return math.abs(c.R - prev.R) < 0.01
+           and math.abs(c.G - prev.G) < 0.01
+           and math.abs(c.B - prev.B) < 0.01
+    end
+    for _, obj in next, gui:GetDescendants() do
+        if obj:GetAttribute("TokaNoAccent") then continue end
+        if obj:IsA("GuiObject") then
+            if same(obj.BackgroundColor3) then obj.BackgroundColor3 = new_color end
+            if (obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox")) then
+                if same(obj.TextColor3) then obj.TextColor3 = new_color end
+            end
+        elseif obj:IsA("UIStroke") then
+            if same(obj.Color) then obj.Color = new_color end
+        elseif obj:IsA("Frame") then
+            if same(obj.BackgroundColor3) then obj.BackgroundColor3 = new_color end
+        end
+    end
+end
+
+-- ── watermark / indicator (WinWare CreateIndicator style) ─────────────
+function library:create_indicator(options)
+    options = options or {}
+    local name    = options.name    or "TOKAIHUB"
+    local color   = options.color   or themes.preset.accent
+    local visible = options.visible ~= false
+
+    local gui = library["items"] or coregui
+    local root = library:create("Frame", {
+        Parent = gui,
+        AnchorPoint = vec2(0, 0.5),
+        Position = dim2(0, 15, 0.96, 0),
+        Size = dim_offset(20, 40),
+        BackgroundColor3 = rgb(14, 14, 16),
+        BackgroundTransparency = visible and 0.12 or 1,
+        BorderSizePixel = 0,
+        ZIndex = 50,
+        ClipsDescendants = true,
+    })
+    library:create("UICorner", { Parent = root, CornerRadius = dim(0, 20) })
+
+    local accent_line = library:create("Frame", {
+        Parent = root,
+        AnchorPoint = vec2(0, 0.5),
+        Position = dim2(0, 2, 0.5, 0),
+        Size = dim2(0, 3, 0.65, 0),
+        BackgroundColor3 = color,
+        BackgroundTransparency = visible and 0 or 1,
+        BorderSizePixel = 0,
+        ZIndex = 51,
+    })
+    library:create("UICorner", { Parent = accent_line, CornerRadius = dim(0, 20) })
+
+    local label = library:create("TextLabel", {
+        Parent = root,
+        AnchorPoint = vec2(0, 0.5),
+        Position = dim2(0, 12, 0.5, 0),
+        Size = dim2(1, -16, 0, 24),
+        BackgroundTransparency = 1,
+        Text = name,
+        TextColor3 = color,
+        TextTransparency = visible and 0.2 or 1,
+        TextSize = 14,
+        Font = Enum.Font.Code,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 51,
+    })
+
+    local ts = game:GetService("TextService")
+    local function _resize()
+        local sz = ts:GetTextSize(label.Text, 14, Enum.Font.Code, Vector2.new(math.huge, math.huge))
+        local w = math.clamp(sz.X + 30, 60, 240)
+        library:tween(root, { Size = dim_offset(w, 40) }, Enum.EasingStyle.Quint, 0.22)
+    end
+    _resize()
+
+    local ind = {}
+    function ind:set_visible(v)
+        library:tween(root,         { BackgroundTransparency = v and 0.12 or 1  }, Enum.EasingStyle.Quint, 0.22)
+        library:tween(accent_line,  { BackgroundTransparency = v and 0     or 1 }, Enum.EasingStyle.Quint, 0.22)
+        library:tween(label,        { TextTransparency       = v and 0.2   or 1 }, Enum.EasingStyle.Quint, 0.22)
+    end
+    function ind:set_text(t)
+        label.Text = t
+        _resize()
+    end
+    function ind:set_color(c3)
+        accent_line.BackgroundColor3 = c3
+        label.TextColor3 = c3
+    end
+    return ind
 end
 
 -- ── SplashAnimation (ported from libba, adapted for TOKAIHUB) ────────
