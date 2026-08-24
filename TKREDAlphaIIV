@@ -3909,6 +3909,14 @@
                 folding = options.folding or false, 
                 callback = options.callback or function() end,
 
+                -- Keybind fields (optional — only active when options.key is given or user binds one)
+                key      = options.key  or nil,
+                key_mode = options.key_mode or options.mode or "Toggle",
+                key_open = false,
+                key_binding = nil,
+                hold_instances = {},
+                key_y_size = 20,
+
                 items = {};
                 seperator = options.seperator or options.Seperator or false;
             }
@@ -3972,8 +3980,128 @@
                     Padding = dim(0, 9);
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
-                
+
+                -- Toggle keybind pill (shows on the left of the toggle button)
+                items[ "toggle_key_holder" ] = library:create( "TextButton" , {
+                    FontFace = fonts.font;
+                    TextColor3 = rgb(0, 0, 0);
+                    BorderColor3 = rgb(0, 0, 0);
+                    Text = "";
+                    Parent = items[ "right_components" ];
+                    AutoButtonColor = false;
+                    LayoutOrder = 1;
+                    Size = dim2(0, 0, 0, 16);
+                    Name = "\0";
+                    BorderSizePixel = 0;
+                    AutomaticSize = Enum.AutomaticSize.X;
+                    Visible = cfg.key ~= nil;
+                    TextSize = 14;
+                    BackgroundColor3 = rgb(33, 33, 35)
+                });
+                library:create( "UICorner" , {
+                    Parent = items[ "toggle_key_holder" ];
+                    CornerRadius = dim(0, 4)
+                });
+                items[ "toggle_key" ] = library:create( "TextLabel" , {
+                    FontFace = fonts.font;
+                    TextColor3 = rgb(86, 86, 87);
+                    BorderColor3 = rgb(0, 0, 0);
+                    Text = cfg.key and (keys[cfg.key] or tostring(cfg.key):gsub("Enum%.[^.]+%.", "")) or "NONE";
+                    Parent = items[ "toggle_key_holder" ];
+                    Name = "\0";
+                    Size = dim2(1, -12, 0, 0);
+                    BackgroundTransparency = 1;
+                    TextXAlignment = Enum.TextXAlignment.Left;
+                    BorderSizePixel = 0;
+                    AutomaticSize = Enum.AutomaticSize.XY;
+                    TextSize = 14;
+                    BackgroundColor3 = rgb(255, 255, 255)
+                });
+                library:create( "UIPadding" , {
+                    Parent = items[ "toggle_key" ];
+                    PaddingTop = dim(0, 1);
+                    PaddingRight = dim(0, 5);
+                    PaddingLeft = dim(0, 5)
+                });
+
+                -- Mode dropdown for toggle keybind
+                items[ "toggle_key_dropdown" ] = library:create( "Frame" , {
+                    BorderColor3 = rgb(0, 0, 0);
+                    Parent = library.items;
+                    Name = "\0";
+                    BackgroundTransparency = 1;
+                    Position = dim2(0, 0, 0, 0);
+                    Size = dim2(0, 0, 0, 0);
+                    BorderSizePixel = 0;
+                    AutomaticSize = Enum.AutomaticSize.X;
+                    BackgroundColor3 = rgb(0, 0, 0)
+                });
+                items[ "toggle_key_inline" ] = library:create( "Frame" , {
+                    Parent = items[ "toggle_key_dropdown" ];
+                    Size = dim2(1, 0, 1, 0);
+                    Name = "\0";
+                    ClipsDescendants = true;
+                    BorderColor3 = rgb(0, 0, 0);
+                    BorderSizePixel = 0;
+                    BackgroundColor3 = rgb(22, 22, 24)
+                });
+                library:create( "UIPadding" , {
+                    PaddingBottom = dim(0, 6);
+                    PaddingTop = dim(0, 3);
+                    PaddingLeft = dim(0, 3);
+                    Parent = items[ "toggle_key_inline" ]
+                });
+                library:create( "UIListLayout" , {
+                    Parent = items[ "toggle_key_inline" ];
+                    Padding = dim(0, 5);
+                    SortOrder = Enum.SortOrder.LayoutOrder
+                });
+                library:create( "UICorner" , {
+                    Parent = items[ "toggle_key_inline" ];
+                    CornerRadius = dim(0, 4)
+                });
+                for _, opt in {"Hold", "Toggle", "Always"} do
+                    local btn = library:create( "TextButton" , {
+                        FontFace = fonts.font;
+                        TextColor3 = rgb(72, 72, 73);
+                        BorderColor3 = rgb(0, 0, 0);
+                        Text = opt;
+                        Parent = items[ "toggle_key_inline" ];
+                        Name = "\0";
+                        Size = dim2(0, 0, 0, 0);
+                        BackgroundTransparency = 1;
+                        TextXAlignment = Enum.TextXAlignment.Left;
+                        BorderSizePixel = 0;
+                        AutomaticSize = Enum.AutomaticSize.XY;
+                        TextSize = 14;
+                        BackgroundColor3 = rgb(255, 255, 255)
+                    });
+                    cfg.hold_instances[opt] = btn
+                    cfg.key_y_size += btn.AbsoluteSize.Y
+                    library:create( "UIPadding" , {
+                        Parent = btn;
+                        PaddingTop = dim(0, 1);
+                        PaddingRight = dim(0, 5);
+                        PaddingLeft = dim(0, 5)
+                    });
+                    btn.MouseButton1Click:Connect(function()
+                        cfg.key_mode = opt
+                        -- update color
+                        for k, v in cfg.hold_instances do v.TextColor3 = rgb(72,72,72) end
+                        btn.TextColor3 = themes.preset.accent
+                        -- update dropdown visible
+                        library:tween(items["toggle_key_dropdown"], {Size = dim_offset(items["toggle_key_holder"].AbsoluteSize.X, 0)})
+                        cfg.key_open = false
+                        if opt == "Always" then cfg.set(true) end
+                        if opt == "Hold" then cfg.set(false) end
+                    end)
+                end
+                if cfg.hold_instances[cfg.key_mode] then
+                    cfg.hold_instances[cfg.key_mode].TextColor3 = themes.preset.accent
+                end
+
                 -- Toggle
+                -- (toggle button follows below)
                     if cfg.type == "checkbox" then 
                         items[ "toggle_button" ] = library:create( "TextButton" , {
                             FontFace = fonts.small;
@@ -4125,7 +4253,62 @@
                 cfg.enabled = not cfg.enabled 
                 cfg.set(cfg.enabled)
             end)
-            
+
+            -- Toggle keybind_holder: left-click = bind key, right-click = mode dropdown
+            items[ "toggle_key_holder" ].InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                    task.wait()
+                    items[ "toggle_key" ].Text = "..."
+                    items[ "toggle_key_holder" ].Visible = true
+                    if cfg.key_binding then
+                        pcall(function() cfg.key_binding:Disconnect() end)
+                        cfg.key_binding = nil
+                    end
+                    cfg.key_binding = library:connection(uis.InputBegan, function(keycode)
+                        local k = keycode.KeyCode ~= Enum.KeyCode.Unknown and keycode.KeyCode or keycode.UserInputType
+                        cfg.key = k ~= Enum.KeyCode.Escape and k or nil
+                        local text = cfg.key and (keys[cfg.key] or tostring(cfg.key):gsub("Enum%.[^.]+%.", "")) or "NONE"
+                        items[ "toggle_key" ].Text = text
+                        items[ "toggle_key_holder" ].Visible = cfg.key ~= nil
+                        cfg.key_binding:Disconnect()
+                        cfg.key_binding = nil
+                    end)
+                elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    cfg.key_open = not cfg.key_open
+                    local sz = cfg.key_open and cfg.key_y_size or 0
+                    items[ "toggle_key_dropdown" ].Position = dim_offset(
+                        items[ "toggle_key_holder" ].AbsolutePosition.X,
+                        items[ "toggle_key_holder" ].AbsolutePosition.Y + items[ "toggle_key_holder" ].AbsoluteSize.Y + 60
+                    )
+                    library:tween(items[ "toggle_key_dropdown" ], {Size = dim_offset(items[ "toggle_key_holder" ].AbsoluteSize.X, sz)})
+                end
+            end)
+
+            -- Toggle keybind fire on keyboard/input
+            library:connection(uis.InputBegan, function(input, game_event)
+                if cfg.key_binding or uis:GetFocusedTextBox() or not cfg.key then return end
+                local sel = input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode or input.UserInputType
+                if sel == cfg.key then
+                    if cfg.key_mode == "Toggle" then
+                        cfg.enabled = not cfg.enabled
+                        cfg.set(cfg.enabled)
+                    elseif cfg.key_mode == "Hold" then
+                        cfg.set(true)
+                    elseif cfg.key_mode == "Always" then
+                        cfg.set(true)
+                    end
+                end
+            end)
+
+            library:connection(uis.InputEnded, function(input)
+                if not cfg.key or uis:GetFocusedTextBox() then return end
+                local sel = input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode or input.UserInputType
+                if sel == cfg.key and cfg.key_mode == "Hold" then
+                    cfg.set(false)
+                end
+            end)
+
             if cfg.seperator then -- ok bro my lua either sucks or this was a pain in the ass to make (simple if statement aswell 💔)
                 library:create( "Frame" , {
                     AnchorPoint = vec2(0, 1);
@@ -5737,24 +5920,31 @@
                 items[ "dropdown" ].Position = dim_offset(items[ "keybind_holder" ].AbsolutePosition.X, items[ "keybind_holder" ].AbsolutePosition.Y + items[ "keybind_holder" ].AbsoluteSize.Y + 60)
             end
         
-            items[ "keybind_holder" ].MouseButton1Down:Connect(function()
-                task.wait()
-                items[ "key" ].Text = "..."	
+            -- Fix: InputBegan handles both mouse MB1 and touch tap
+            items[ "keybind_holder" ].InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                    task.wait()
+                    items[ "key" ].Text = "..."
 
-                cfg.binding = library:connection(uis.InputBegan, function(keycode, game_event)  
-                    cfg._rebinding = true
-                    cfg.set(keycode.KeyCode ~= Enum.KeyCode.Unknown and keycode.KeyCode or keycode.UserInputType)
-                    cfg._rebinding = false
-                    
-                    cfg.binding:Disconnect() 
-                    cfg.binding = nil
-                end)
-            end)
+                    -- Cancel any existing binding first
+                    if cfg.binding then
+                        pcall(function() cfg.binding:Disconnect() end)
+                        cfg.binding = nil
+                    end
 
-            items[ "keybind_holder" ].MouseButton2Down:Connect(function()
-                cfg.open = not cfg.open 
-
-                cfg.set_visible(cfg.open)
+                    cfg.binding = library:connection(uis.InputBegan, function(keycode, game_event)
+                        cfg._rebinding = true
+                        local k = keycode.KeyCode ~= Enum.KeyCode.Unknown and keycode.KeyCode or keycode.UserInputType
+                        cfg.set(k)
+                        cfg._rebinding = false
+                        cfg.binding:Disconnect()
+                        cfg.binding = nil
+                    end)
+                elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    cfg.open = not cfg.open
+                    cfg.set_visible(cfg.open)
+                end
             end)
 
             library:connection(uis.InputBegan, function(input, game_event) 
