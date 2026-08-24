@@ -2809,28 +2809,40 @@
             });
 
             local items = cfg.items; do
+                -- Compute viewport-centred offset position so draggify works correctly
+                local _vp = (ws.CurrentCamera and ws.CurrentCamera.ViewportSize) or Vector2.new(1920, 1080)
+                local _cx = math.floor((_vp.X - cfg.size.X.Offset) / 2)
+                local _cy = math.floor((_vp.Y - cfg.size.Y.Offset) / 2)
+
                 items[ "main" ] = library:create( "Frame" , {
                     Parent = library[ "items" ];
                     Size = cfg.size;
                     Name = "\0";
-                    -- AnchorPoint + fromScale(0.5,0.5) = always perfectly centred regardless of resolution
-                    AnchorPoint = Vector2.new(0.5, 0.5);
-                    Position = UDim2.fromScale(0.5, 0.5);
+                    -- Pure offset position so draggify delta maths are always correct
+                    AnchorPoint = Vector2.new(0, 0);
+                    Position = UDim2.fromOffset(_cx, _cy);
                     BorderColor3 = rgb(0, 0, 0);
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(14, 14, 16);
-                    -- Start invisible + slightly small for pop-in animation
                     BackgroundTransparency = 1;
                 })
-                -- Pop-in: fade + scale from 94% (WinWare WindowPopTween style)
+                -- Pop-in: fade + scale from 94%
                 items[ "main" ].Size = UDim2.fromOffset(
                     math.floor(cfg.size.X.Offset * 0.94),
                     math.floor(cfg.size.Y.Offset * 0.94)
                 )
+                -- Recentre after scale so it doesn't drift during pop
+                items[ "main" ].Position = UDim2.fromOffset(
+                    math.floor((_vp.X - cfg.size.X.Offset * 0.94) / 2),
+                    math.floor((_vp.Y - cfg.size.Y.Offset * 0.94) / 2)
+                )
                 task.spawn(function()
                     task.wait(0.05)
                     library:tween(items[ "main" ], { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.32)
-                    library:tween(items[ "main" ], { Size = cfg.size }, Enum.EasingStyle.Back, 0.44)
+                    library:tween(items[ "main" ], {
+                        Size = cfg.size,
+                        Position = UDim2.fromOffset(_cx, _cy)
+                    }, Enum.EasingStyle.Back, 0.44)
                 end)
                 library._window_main_frame = items[ "main" ]
                 -- Register for AutoScale — mobile gets 0.72x base so 600px feels right on small screens
@@ -3105,19 +3117,24 @@
 
                 local main = items[ "main" ]
                 if bool then
-                    -- Show: fade + pop in from 94% (WinWare WindowPopTween)
                     library[ "items" ].Enabled = true
                     if main then
+                        local _vp2 = (ws.CurrentCamera and ws.CurrentCamera.ViewportSize) or Vector2.new(1920,1080)
+                        local _cx2 = math.floor((_vp2.X - cfg.size.X.Offset) / 2)
+                        local _cy2 = math.floor((_vp2.Y - cfg.size.Y.Offset) / 2)
                         main.Size = UDim2.fromOffset(
                             math.floor(cfg.size.X.Offset * 0.94),
                             math.floor(cfg.size.Y.Offset * 0.94)
                         )
+                        main.Position = UDim2.fromOffset(
+                            math.floor((_vp2.X - cfg.size.X.Offset * 0.94) / 2),
+                            math.floor((_vp2.Y - cfg.size.Y.Offset * 0.94) / 2)
+                        )
                         main.BackgroundTransparency = 1
                         library:tween(main, { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.32)
-                        library:tween(main, { Size = cfg.size }, Enum.EasingStyle.Back, 0.44)
+                        library:tween(main, { Size = cfg.size, Position = UDim2.fromOffset(_cx2, _cy2) }, Enum.EasingStyle.Back, 0.44)
                     end
                 else
-                    -- Hide: scale to 94% + fade out (WinWare WindowHideTween)
                     if main then
                         library:tween(main, {
                             BackgroundTransparency = 1,
@@ -9299,77 +9316,14 @@ function library:set_accent_color(new_color)
     end
 end
 
--- ── watermark / indicator (WinWare CreateIndicator style) ─────────────
+-- ── create_indicator: removed (was the pill badge at bottom-left) ────
+-- Returns a no-op stub so existing code referencing it doesn't crash
 function library:create_indicator(options)
-    options = options or {}
-    local name    = options.name    or "TOKAIHUB"
-    local color   = options.color   or themes.preset.accent
-    local visible = options.visible ~= false
-
-    local gui = library["items"] or coregui
-    local root = library:create("Frame", {
-        Parent = gui,
-        AnchorPoint = vec2(0, 0.5),
-        Position = dim2(0, 15, 0.96, 0),
-        Size = dim_offset(20, 40),
-        BackgroundColor3 = rgb(14, 14, 16),
-        BackgroundTransparency = visible and 0.12 or 1,
-        BorderSizePixel = 0,
-        ZIndex = 50,
-        ClipsDescendants = true,
-    })
-    library:create("UICorner", { Parent = root, CornerRadius = dim(0, 20) })
-
-    local accent_line = library:create("Frame", {
-        Parent = root,
-        AnchorPoint = vec2(0, 0.5),
-        Position = dim2(0, 2, 0.5, 0),
-        Size = dim2(0, 3, 0.65, 0),
-        BackgroundColor3 = color,
-        BackgroundTransparency = visible and 0 or 1,
-        BorderSizePixel = 0,
-        ZIndex = 51,
-    })
-    library:create("UICorner", { Parent = accent_line, CornerRadius = dim(0, 20) })
-
-    local label = library:create("TextLabel", {
-        Parent = root,
-        AnchorPoint = vec2(0, 0.5),
-        Position = dim2(0, 12, 0.5, 0),
-        Size = dim2(1, -16, 0, 24),
-        BackgroundTransparency = 1,
-        Text = name,
-        TextColor3 = color,
-        TextTransparency = visible and 0.2 or 1,
-        TextSize = 14,
-        Font = Enum.Font.Code,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 51,
-    })
-
-    local ts = game:GetService("TextService")
-    local function _resize()
-        local sz = ts:GetTextSize(label.Text, 14, Enum.Font.Code, Vector2.new(math.huge, math.huge))
-        local w = math.clamp(sz.X + 30, 60, 240)
-        library:tween(root, { Size = dim_offset(w, 40) }, Enum.EasingStyle.Quint, 0.22)
-    end
-    _resize()
-
-    local ind = {}
-    function ind:set_visible(v)
-        library:tween(root,         { BackgroundTransparency = v and 0.12 or 1  }, Enum.EasingStyle.Quint, 0.22)
-        library:tween(accent_line,  { BackgroundTransparency = v and 0     or 1 }, Enum.EasingStyle.Quint, 0.22)
-        library:tween(label,        { TextTransparency       = v and 0.2   or 1 }, Enum.EasingStyle.Quint, 0.22)
-    end
-    function ind:set_text(t)
-        label.Text = t
-        _resize()
-    end
-    function ind:set_color(c3)
-        accent_line.BackgroundColor3 = c3
-        label.TextColor3 = c3
-    end
-    return ind
+    local stub = {}
+    function stub:set_visible(v) end
+    function stub:set_text(t)    end
+    function stub:set_color(c3)  end
+    return stub
 end
 
 -- ── SplashAnimation (ported from libba, adapted for TOKAIHUB) ────────
