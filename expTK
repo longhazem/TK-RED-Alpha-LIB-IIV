@@ -83,8 +83,6 @@ tog_color:colorpicker({
     default  = Color3.fromRGB(138, 154, 91),
     callback = function(c)
         library:set_accent_color(c)
-        indicator:set_color(c)
-        notify("Accent", "Đổi màu thành công!")
     end
 })
 
@@ -260,8 +258,6 @@ sec_accent:dropdown({
         for _, p in preset_colors do
             if p.name == v then
                 library:set_accent_color(p.color)
-                indicator:set_color(p.color)
-                notify("Accent", "Đổi sang: " .. v)
                 break
             end
         end
@@ -274,8 +270,6 @@ sec_accent:colorpicker({
     seperator = true,
     callback = function(c)
         library:set_accent_color(c)
-        indicator:set_color(c)
-        notify("Accent", "Màu custom đã áp dụng!")
     end
 })
 
@@ -293,22 +287,7 @@ sec_scale:slider({
     callback = function(v) library:SetAutoScaleMultiplier(v) end
 })
 
-local sec_wm = adj_r:section({ name = "Watermark", default = true })
-sec_wm:toggle({
-    name = "Hiện watermark",
-    default = true,
-    seperator = true,
-    callback = function(v) indicator:set_visible(v) end
-})
-sec_wm:textbox({
-    name = "Tên watermark",
-    default = "TOKAIHUB | Test",
-    placeholder = "Nhập tên...",
-    seperator = true,
-    callback = function(v)
-        if v ~= "" then indicator:set_text(v) end
-    end
-})
+-- Watermark section removed (indicator đã bị bỏ)
 
 -- Info panel (FPS, Ping, User...)
 library:info_list({
@@ -375,7 +354,6 @@ library:keybind_list({
 -- ── Load xong ─────────────────────────────────────────────────────────
 task.delay(2.5, function()
     notify("TOKAIHUB", "Load xong! " .. device .. " | " .. plr.Name, 5)
-    indicator:set_text("TOKAIHUB | " .. plr.Name)
 end)
 
 print("[TOKAIHUB] Test v2 running | IsMobile:", library.IsMobile)
