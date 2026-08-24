@@ -1,247 +1,262 @@
 --[[
-    TOKAIHUB - File thử nghiệm
+    TOKAIHUB - File thử nghiệm v2
     Tác giả: @longtokai
     Thử nghiệm: @dokkimane
-
-    Cách dùng:
-    1. Host TOKAIHUB_Library.lua lên GitHub raw hoặc paste thẳng
-    2. Thay URL bên dưới bằng link raw của mày
-    3. Chạy script này trong executor
-
-    Phím tắt (PC): RightShift hoặc RightControl để ẩn/hiện menu
-    Mobile: Nút "☰ TOKAI" góc trên trái — kéo để di chuyển, tap để ẩn/hiện
 ]]
 
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV"))()
+"))()
 
--- ── Tạo window ───────────────────────────────────────────────────────
+-- ── Window ────────────────────────────────────────────────────────────
 local window = library:window({
-    name    = "TOKAIHUB",
-    suffix  = "test",
-    gameInfo = "TOKAIHUB - Thử nghiệm",
+    name     = "TOKAIHUB",
+    suffix   = "v2 test",
+    gameInfo = "TOKAIHUB",
+})
+window:seperator({ name = "Test v2" })
+
+-- ── Watermark indicator (WinWare style — pill badge góc dưới trái) ───
+local indicator = library:create_indicator({
+    name    = "TOKAIHUB | Test",
+    color   = Color3.fromRGB(100, 160, 255),
+    visible = true,
 })
 
-window:seperator({ name = "Thử Nghiệm" })
+-- ── Shorthand notify ─────────────────────────────────────────────────
+local function notify(title, msg, t)
+    library:notify(title, msg, t or 3)
+end
 
--- ── Tab 1: UI Elements (kiểm tra tất cả component) ──────────────────
-local ui_tab = window:tab({ name = "UI Elements" })
+-- ════════════════════════════════════════════════════════════════════ --
+-- Tab 1: Thành Phần UI
+-- ════════════════════════════════════════════════════════════════════ --
+local ui_tab = window:tab({ name = "UI" })
+local col_l  = ui_tab:column({})
+local col_r  = ui_tab:column({})
 
-local col1 = ui_tab:column({})
-local col2 = ui_tab:column({})
+-- ── Cột Trái ─────────────────────────────────────────────────────────
+local sec_basic = col_l:section({ name = "Cơ Bản", default = true })
 
--- Cột trái
-local sec_basic = col1:section({ name = "Cơ Bản", default = true })
-
-sec_basic:label({
-    name = "Nhãn thông tin",
-    info = "Đây là tooltip khi hover. Hoạt động trên PC và mobile."
-})
-
-sec_basic:toggle({
-    name    = "Toggle thường",
-    default = false,
-    seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Toggle thường:", v)
-    end
-})
-
-local toggle_color = sec_basic:toggle({
-    name    = "Toggle + Colorpicker",
+sec_basic:label({ name = "Toggle + Colorpicker kết hợp", info = "Bấm nút màu để mở colorpicker" })
+local tog_color = sec_basic:toggle({
+    name = "Hiệu ứng màu",
     default = true,
     seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Toggle color:", v)
-    end
+    callback = function(v) notify("Toggle", "Hiệu ứng màu: " .. tostring(v)) end
 })
-toggle_color:colorpicker({
-    default = Color3.fromRGB(138, 154, 91),
-    callback = function(c, a)
-        print("[TOKAIHUB] Màu:", c, "Alpha:", a)
-    end
+tog_color:colorpicker({
+    default  = Color3.fromRGB(100, 160, 255),
+    callback = function(c) library:set_accent_color(c) notify("Accent", "Màu accent đã đổi!") end
 })
 
 sec_basic:slider({
-    name    = "Slider số nguyên",
-    min     = 0,
-    max     = 100,
-    default = 50,
-    round   = 1,
-    suffix  = "%",
-    seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Slider:", v)
-    end
+    name = "Tốc độ", min = 0, max = 300, default = 16, round = 1,
+    suffix = " studs/s", seperator = true,
+    callback = function(v) notify("Slider", "Tốc độ: " .. v) end
 })
 
 sec_basic:slider({
-    name    = "Slider thập phân",
-    min     = 0,
-    max     = 1,
-    default = 0.5,
-    round   = 0.01,
+    name = "Độ nhạy", min = 0.1, max = 5.0, default = 1.0, round = 0.1,
     seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Slider decimal:", v)
-    end
+    callback = function(v) notify("Slider", "Độ nhạy: " .. v) end
 })
 
-sec_basic:button({
-    name     = "Bấm tôi",
-    callback = function()
-        print("[TOKAIHUB] Button bị bấm!")
-        library:notify("Button hoạt động!", 3)
-    end
-})
-
--- Cột phải
-local sec_adv = col2:section({ name = "Nâng Cao", default = true })
-
-sec_adv:dropdown({
-    name    = "Dropdown đơn",
-    items   = { "Option A", "Option B", "Option C", "Option D" },
-    default = "Option A",
+sec_basic:dropdown({
+    name = "Chế độ ngắm",
+    items = { "Head", "Torso", "Closest", "Random" },
+    default = "Head",
     seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Dropdown:", v)
-    end
+    callback = function(v) notify("Dropdown", "Mục tiêu: " .. v) end
 })
 
-sec_adv:dropdown({
-    name    = "Dropdown multi",
-    items   = { "Scoped", "Flashed", "Knocked", "Touched" },
-    default = { "Scoped", "Flashed" },
-    multi   = true,
+sec_basic:dropdown({
+    name = "Bone chọn (multi)",
+    items = { "Head", "Neck", "Torso", "Spine", "RightArm", "LeftArm" },
+    default = { "Head", "Torso" },
+    multi = true,
     seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Multi dropdown:", v)
-    end
+    callback = function(v) print("[TOKAI] Multi:", v) end
 })
 
-sec_adv:textbox({
-    name        = "Nhập văn bản",
-    default     = "",
-    placeholder = "Nhập gì đó...",
-    seperator   = true,
-    callback    = function(v)
-        print("[TOKAIHUB] Textbox:", v)
-    end
-})
-
-sec_adv:keybind({
-    name     = "Keybind thử",
-    default  = Enum.KeyCode.F,
+sec_basic:keybind({
+    name = "Phím bật/tắt",
+    default = Enum.KeyCode.F,
     seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Keybind fired:", v)
-    end
+    callback = function(v) notify("Keybind", "Kích hoạt: " .. tostring(v)) end
 })
 
--- Sub-toggle với settings
-local toggle_sub = sec_adv:toggle({
-    name    = "Toggle có settings",
+sec_basic:textbox({
+    name = "Nhập tên tùy chỉnh",
+    default = "",
+    placeholder = "VD: PlayerName...",
+    seperator = true,
+    callback = function(v) notify("Input", "Nhập: " .. v) end
+})
+
+-- ── Cột Phải ─────────────────────────────────────────────────────────
+local sec_adv = col_r:section({ name = "Nâng Cao", default = true })
+
+sec_adv:label({ name = "Toggle có sub-settings", info = "Bấm mũi tên để mở settings" })
+local tog_sub = sec_adv:toggle({
+    name = "Aimbot",
     default = false,
     seperator = true,
+    callback = function(v) notify("Aimbot", v and "Bật" or "Tắt") end
 })
-local sub = toggle_sub:settings({})
-sub:slider({ name = "Tốc độ",   min = 0, max = 200, default = 50,  seperator = true })
-sub:slider({ name = "Độ trễ",   min = 0, max = 500, default = 100, seperator = true })
-sub:dropdown({
-    name  = "Chế độ",
-    items = { "Legit", "Rage", "Silent" },
-    default = "Legit",
-    seperator = true
-})
-sub:toggle({ name = "Bật phụ", default = false })
+local sub = tog_sub:settings({})
+sub:slider({ name = "FOV",       min = 1,   max = 360, default = 90,   seperator = true })
+sub:slider({ name = "Smooth",    min = 0,   max = 100, default = 25,   seperator = true })
+sub:slider({ name = "Prediction",min = 0,   max = 1,   default = 0.15, round = 0.01, seperator = true })
+sub:dropdown({ name = "Bone", items = { "Head", "Neck", "Torso" }, default = "Head", seperator = true })
+sub:toggle({ name = "Silent Aim", default = false, seperator = true })
+sub:toggle({ name = "Visible Check", default = true })
 
--- ── Tab 2: Mobile Test (kiểm tra drag + touch riêng) ────────────────
-local mobile_tab = window:tab({ name = "Mobile" })
-
-local mcol = mobile_tab:column({})
-local msec = mcol:section({ name = "Kiểm Tra Mobile", default = true })
-
-msec:label({
-    name = "Thông tin thiết bị",
-    info = "Hiển thị loại thiết bị đang dùng"
-})
-
-local device_type = library.IsMobile and "📱 Mobile (Android/iOS)" or "🖥️ PC"
-msec:label({ name = "Thiết bị: " .. device_type })
-
-msec:toggle({
-    name    = "Test touch toggle",
-    default = false,
-    seperator = true,
-    callback = function(v)
-        print("[TOKAIHUB] Touch toggle:", v)
-        library:notify("Touch toggle: " .. tostring(v), 2)
-    end
-})
-
-local touch_slider_val = 50
-msec:slider({
-    name    = "Kéo slider bằng ngón tay",
-    min     = 0,
-    max     = 100,
-    default = touch_slider_val,
-    round   = 1,
-    seperator = true,
-    callback = function(v)
-        touch_slider_val = v
-        print("[TOKAIHUB] Touch slider:", v)
-    end
-})
-
-msec:colorpicker({
-    name    = "Colorpicker touch",
-    default = Color3.fromRGB(100, 180, 255),
-    seperator = true,
-    callback = function(c, a)
-        print("[TOKAIHUB] Touch color:", c)
-    end
-})
-
-msec:button({
-    name = "Notify thử",
+sec_adv:button({
+    name = "Khởi động lại ký tự",
     callback = function()
-        library:notify("TOKAIHUB hoạt động trên " .. device_type .. "!", 4)
+        local char = game.Players.LocalPlayer.Character
+        if char then game.Players.LocalPlayer:LoadCharacter() end
+        notify("Player", "Đã respawn!")
     end
 })
 
--- ── Tab 3: AutoScale test ────────────────────────────────────────────
-local scale_tab = window:tab({ name = "AutoScale" })
-local scol = scale_tab:column({})
-local ssec = scol:section({ name = "Tuỳ Chỉnh Scale", default = true })
+sec_adv:button({
+    name = "Copy Job ID",
+    callback = function()
+        pcall(function() setclipboard(game.JobId) end)
+        notify("Misc", "Job ID đã copy!")
+    end
+})
 
-ssec:label({ name = "AutoScale tự động theo độ phân giải màn hình" })
+sec_adv:button({
+    name = "Test Notification",
+    callback = function()
+        notify("TOKAIHUB", "Notification hoạt động bình thường!", 4)
+    end
+})
 
-ssec:slider({
-    name    = "Scale multiplier",
-    min     = 0.5,
-    max     = 2.0,
-    default = 1.0,
-    round   = 0.05,
+-- ════════════════════════════════════════════════════════════════════ --
+-- Tab 2: Điều Chỉnh
+-- ════════════════════════════════════════════════════════════════════ --
+local adj_tab = window:tab({ name = "Điều Chỉnh" })
+local adj_col = adj_tab:column({})
+local adj_col2 = adj_tab:column({})
+
+local sec_accent = adj_col:section({ name = "Màu Accent", default = true })
+sec_accent:label({ name = "Đổi màu accent toàn bộ UI", info = "Dùng set_accent_color từ WinWare" })
+
+local preset_colors = {
+    ["Xanh dương"] = Color3.fromRGB(100, 160, 255),
+    ["Tím"]        = Color3.fromRGB(160, 100, 255),
+    ["Đỏ"]         = Color3.fromRGB(255, 80,  80 ),
+    ["Xanh lá"]    = Color3.fromRGB(80,  220, 120),
+    ["Vàng"]       = Color3.fromRGB(255, 200, 60 ),
+    ["Hồng"]       = Color3.fromRGB(255, 120, 180),
+}
+local color_keys = {}
+for k in next, preset_colors do table.insert(color_keys, k) end
+table.sort(color_keys)
+
+sec_accent:dropdown({
+    name = "Màu preset",
+    items = color_keys,
+    default = "Xanh dương",
     seperator = true,
     callback = function(v)
-        library:SetAutoScaleMultiplier(v)
-        print("[TOKAIHUB] AutoScale multiplier:", v)
+        local c = preset_colors[v]
+        if c then
+            library:set_accent_color(c)
+            indicator:set_color(c)
+            notify("Accent", "Đã đổi sang " .. v)
+        end
     end
 })
 
-ssec:toggle({
-    name    = "Bật AutoScale",
+sec_accent:colorpicker({
+    name = "Màu tùy chỉnh",
+    default = Color3.fromRGB(100, 160, 255),
+    seperator = true,
+    callback = function(c)
+        library:set_accent_color(c)
+        indicator:set_color(c)
+        notify("Accent", "Accent đã cập nhật!")
+    end
+})
+
+local sec_scale = adj_col:section({ name = "AutoScale", default = true })
+sec_scale:toggle({
+    name = "Bật AutoScale",
     default = true,
     seperator = true,
+    callback = function(v) library:SetAutoScaleEnabled(v) end
+})
+sec_scale:slider({
+    name = "Scale multiplier",
+    min = 0.5, max = 2.0, default = 1.0, round = 0.05,
+    seperator = true,
+    callback = function(v) library:SetAutoScaleMultiplier(v) end
+})
+
+local sec_indicator = adj_col2:section({ name = "Watermark / Indicator", default = true })
+sec_indicator:toggle({
+    name = "Hiện watermark",
+    default = true,
+    seperator = true,
+    callback = function(v) indicator:set_visible(v) end
+})
+sec_indicator:textbox({
+    name = "Tên watermark",
+    default = "TOKAIHUB | Test",
+    placeholder = "Nhập tên...",
+    seperator = true,
     callback = function(v)
-        library:SetAutoScaleEnabled(v)
-        print("[TOKAIHUB] AutoScale enabled:", v)
+        if v ~= "" then indicator:set_text(v) end
     end
 })
 
--- ── Notification test khi load xong ─────────────────────────────────
-task.delay(2.5, function()
-    library:notify("TOKAIHUB đã load xong! Thiết bị: " .. device_type, 5)
+-- ════════════════════════════════════════════════════════════════════ --
+-- Tab 3: Thông Tin
+-- ════════════════════════════════════════════════════════════════════ --
+local info_tab = window:tab({ name = "Thông Tin" })
+local info_col = info_tab:column({})
+local sec_info = info_col:section({ name = "Hệ Thống", default = true })
+
+local device  = library.IsMobile and "📱 Mobile" or "🖥️ PC"
+local plr     = game.Players.LocalPlayer
+
+sec_info:label({ name = "Thiết bị: " .. device })
+sec_info:label({ name = "Tên: " .. plr.Name })
+sec_info:label({ name = "ID: " .. plr.UserId })
+sec_info:label({ name = "Ping: Đang đo..." })
+sec_info:label({ name = "FPS: Đang đo..." })
+
+-- Live FPS + Ping counter (cập nhật mỗi giây)
+local fps_label, ping_label
+local lc = info_col:section({ name = "Live Stats", default = true })
+fps_label  = lc:label({ name = "FPS: --" })
+ping_label = lc:label({ name = "Ping: --" })
+
+local _fps_count = 0
+local _conn_fps = game:GetService("RunService").RenderStepped:Connect(function() _fps_count += 1 end)
+local _conn_hb  = game:GetService("RunService").Heartbeat:Connect(function() end)
+
+task.spawn(function()
+    while task.wait(1) do
+        if fps_label and fps_label.items and fps_label.items["label"] then
+            fps_label.items["label"].Text = "FPS: " .. _fps_count
+        end
+        _fps_count = 0
+        local ping = plr:GetAttribute("Ping") or math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
+        if ping_label and ping_label.items and ping_label.items["label"] then
+            ping_label.items["label"].Text = "Ping: " .. tostring(ping) .. "ms"
+        end
+    end
 end)
 
-print("[TOKAIHUB] Script thử nghiệm chạy xong.")
-print("[TOKAIHUB] IsMobile =", library.IsMobile)
+-- ── Load done notification ────────────────────────────────────────────
+task.delay(2.8, function()
+    notify("TOKAIHUB", "Load xong! Thiết bị: " .. device, 5)
+    indicator:set_text("TOKAIHUB | " .. plr.Name)
+end)
+
+print("[TOKAIHUB] v2 test running | IsMobile:", library.IsMobile, "| Player:", plr.Name)
