@@ -2790,8 +2790,10 @@
                 Parent = coregui;
                 Name = "tokaihub";
                 Enabled = true;
+                DisplayOrder = 999;
+                ResetOnSpawn = false;
                 ZIndexBehavior = Enum.ZIndexBehavior.Global;
-                IgnoreGuiInset = true;
+                IgnoreGuiInset = false;
             });
             pcall(function() library:_bind_cursor_menu() end)
 
