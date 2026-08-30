@@ -2817,34 +2817,13 @@
                     Parent = library[ "items" ];
                     Size = cfg.size;
                     Name = "\0";
-                    AnchorPoint = Vector2.new(0, 0);
-                    Position = UDim2.fromOffset(-9999, -9999);   -- hidden until centred
+                    -- Obsidian centering: UDim2.new(0.5, -W/2, 0.5, -H/2)
+                    Position = UDim2.new(0.5, -cfg.size.X.Offset / 2, 0.5, -cfg.size.Y.Offset / 2);
                     BorderColor3 = rgb(0, 0, 0);
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(14, 14, 16);
                     BackgroundTransparency = 1;
                 })
-                -- Wait one frame so Roblox has flushed layout and ViewportSize is real
-                task.spawn(function()
-                    game:GetService("RunService").RenderStepped:Wait()
-                    local cam = ws.CurrentCamera
-                    local vp = (cam and cam.ViewportSize.X > 0 and cam.ViewportSize) or Vector2.new(1920, 1080)
-                    local sw = cfg.size.X.Offset
-                    local sh = cfg.size.Y.Offset
-                    local cx = math.floor((vp.X - sw) / 2)
-                    local cy = math.floor((vp.Y - sh) / 2)
-                    -- Pop-in from 94%
-                    items[ "main" ].Size = UDim2.fromOffset(math.floor(sw * 0.94), math.floor(sh * 0.94))
-                    items[ "main" ].Position = UDim2.fromOffset(
-                        math.floor((vp.X - sw * 0.94) / 2),
-                        math.floor((vp.Y - sh * 0.94) / 2)
-                    )
-                    library:tween(items[ "main" ], { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.28)
-                    library:tween(items[ "main" ], {
-                        Size = UDim2.fromOffset(sw, sh),
-                        Position = UDim2.fromOffset(cx, cy),
-                    }, Enum.EasingStyle.Back, 0.42)
-                end)
                 library._window_main_frame = items[ "main" ]
                 -- Register for AutoScale — mobile gets 0.72x base so 600px feels right on small screens
                 library:RegisterAutoScaleTarget(items[ "main" ], _IsMobile and 0.72 or 1.0)
@@ -3120,24 +3099,10 @@
                 if bool then
                     library[ "items" ].Enabled = true
                     if main then
-                        local cam = ws.CurrentCamera
-                        local vp2 = (cam and cam.ViewportSize.X > 0 and cam.ViewportSize) or Vector2.new(1920, 1080)
-                        local sw = cfg.size.X.Offset
-                        local sh = cfg.size.Y.Offset
-                        local cx2 = math.floor((vp2.X - sw) / 2)
-                        local cy2 = math.floor((vp2.Y - sh) / 2)
-                        -- If window was dragged, re-centre on re-open
-                        main.Size = UDim2.fromOffset(math.floor(sw * 0.94), math.floor(sh * 0.94))
-                        main.Position = UDim2.fromOffset(
-                            math.floor((vp2.X - sw * 0.94) / 2),
-                            math.floor((vp2.Y - sh * 0.94) / 2)
-                        )
                         main.BackgroundTransparency = 1
-                        library:tween(main, { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.28)
-                        library:tween(main, {
-                            Size = UDim2.fromOffset(sw, sh),
-                            Position = UDim2.fromOffset(cx2, cy2),
-                        }, Enum.EasingStyle.Back, 0.42)
+                        main.Position = UDim2.new(0.5, -cfg.size.X.Offset / 2, 0.5, -cfg.size.Y.Offset / 2)
+                        main.Size = cfg.size
+                        library:tween(main, { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.25)
                     end
                 else
                     if main then
