@@ -579,91 +579,94 @@
             end)
         end
 
-        -- Draggable floating button (Mobile toggle + any floating button)
+        -- ── Obsidian-style AddDraggableButton ──────────────────────────────
         function library:add_draggable_button(text, func)
             local tbl = {}
-            -- Always use dedicated btn_gui — never library["items"] which hides with the menu
             local scrGui = library._btn_gui or coregui
-            local holder = library:create("Frame", {
+
+            -- Measure text size for auto-sizing (Obsidian: GetTextBounds style)
+            local ts = game:GetService("TextService")
+            local function measure(t)
+                local s = ts:GetTextSize(t, 14, Enum.Font.Code, Vector2.new(math.huge, math.huge))
+                return math.max(s.X + 16, 50), math.max(s.Y + 8, 26)
+            end
+
+            local initW, initH = measure(text)
+            local btn = library:create("TextButton", {
                 BackgroundColor3 = rgb(22, 22, 24),
-                BorderColor3 = rgb(60, 60, 65),
+                BorderSizePixel = 0,
                 Position = dim_offset(6, 6),
-                Size = dim_offset(82, 32),
+                Size = dim_offset(initW, initH),
+                Text = text,
+                TextColor3 = rgb(200, 200, 200),
+                TextSize = 14,
+                Font = Enum.Font.Code,
                 ZIndex = 300,
+                AutoButtonColor = false,
                 Parent = scrGui,
             })
-            local inner = library:create("Frame", {
-                BackgroundColor3 = rgb(38, 38, 38),
-                BorderColor3 = rgb(50, 50, 50),
-                Size = dim2(1, 0, 1, 0),
-                ZIndex = 301,
-                Parent = holder,
-            })
-            local label = library:create("TextLabel", {
-                Size = dim2(1, 0, 1, 0),
-                BackgroundTransparency = 1,
-                Text = text,
-                TextColor3 = rgb(255, 255, 255),
-                TextSize = 13,
-                Font = Enum.Font.Code,
-                ZIndex = 302,
-                Parent = inner,
+            library:create("UICorner", { Parent = btn, CornerRadius = dim(0, 6) })
+            library:create("UIStroke", {
+                Parent = btn,
+                Color = rgb(45, 45, 50),
+                Thickness = 1,
             })
 
-            -- Drag logic (mouse + touch)
+            -- Obsidian MakeDraggable: Input.Changed for release detection
             do
                 local _dragging = false
-                local _draggingInput = nil
-                local _dragStart = nil
-                local _startPos = nil
+                local _startPos, _framePos
+                local _changed
 
-                holder.InputBegan:Connect(function(input)
-                    local isClick = input.UserInputType == Enum.UserInputType.MouseButton1
-                    local isTouch = input.UserInputType == Enum.UserInputType.Touch
-                    if not (isClick or isTouch) then return end
+                btn.InputBegan:Connect(function(input)
+                    if input.UserInputType ~= Enum.UserInputType.MouseButton1
+                        and input.UserInputType ~= Enum.UserInputType.Touch then return end
                     _dragging = true
-                    _draggingInput = input
-                    _dragStart = input.Position
-                    _startPos = holder.Position
-                    local conn
-                    conn = input.Changed:Connect(function()
+                    _startPos = input.Position
+                    _framePos = btn.Position
+                    _changed = input.Changed:Connect(function()
                         if input.UserInputState == Enum.UserInputState.End then
                             _dragging = false
-                            if conn and conn.Connected then conn:Disconnect() end
+                            if _changed and _changed.Connected then _changed:Disconnect() end
                         end
                     end)
                 end)
 
-                library:connection(uis.InputChanged, function(input)
-                    if not _dragging or not _draggingInput then return end
-                    local isMoveMatch = (input.UserInputType == Enum.UserInputType.MouseMovement
-                        and _draggingInput.UserInputType == Enum.UserInputType.MouseButton1)
-                    local isTouchMatch = (input == _draggingInput
-                        and input.UserInputType == Enum.UserInputType.Touch)
-                    if not (isMoveMatch or isTouchMatch) then return end
-                    local delta = input.Position - _dragStart
-                    holder.Position = dim2(
-                        _startPos.X.Scale, _startPos.X.Offset + delta.X,
-                        _startPos.Y.Scale, _startPos.Y.Offset + delta.Y
+                uis.InputChanged:Connect(function(input)
+                    if not _dragging then return end
+                    local isMove = input.UserInputType == Enum.UserInputType.MouseMovement
+                    local isTouch = input.UserInputType == Enum.UserInputType.Touch
+                    if not (isMove or isTouch) then return end
+                    local delta = input.Position - _startPos
+                    btn.Position = dim2(
+                        _framePos.X.Scale, _framePos.X.Offset + delta.X,
+                        _framePos.Y.Scale, _framePos.Y.Offset + delta.Y
                     )
                 end)
             end
 
-            -- Tap-to-click (only fires if position didn't change = tap not drag)
-            holder.InputBegan:Connect(function(input)
+            -- Click/tap: fires only when not dragged (Obsidian SafeCallback pattern)
+            local _clickStart
+            btn.InputBegan:Connect(function(input)
                 if input.UserInputType ~= Enum.UserInputType.MouseButton1
                     and input.UserInputType ~= Enum.UserInputType.Touch then return end
-                local origPos = holder.Position
-                task.wait(0.15)
-                if holder.Position == origPos and type(func) == "function" then
-                    func(tbl)
+                _clickStart = btn.Position
+            end)
+            btn.InputEnded:Connect(function(input)
+                if input.UserInputType ~= Enum.UserInputType.MouseButton1
+                    and input.UserInputType ~= Enum.UserInputType.Touch then return end
+                if _clickStart and btn.Position == _clickStart then
+                    if type(func) == "function" then func(tbl) end
                 end
             end)
 
-            tbl.holder = holder
-            tbl.label  = label
-            function tbl:set_text(t) label.Text = t end
-            function tbl:set_position(x, y) holder.Position = dim_offset(x, y) end
+            tbl.btn = btn
+            function tbl:set_text(t)
+                local w, h = measure(t)
+                btn.Text = t
+                btn.Size = dim_offset(w, h)
+            end
+            function tbl:set_position(x, y) btn.Position = dim_offset(x, y) end
             return tbl
         end
 
@@ -2809,40 +2812,38 @@
             });
 
             local items = cfg.items; do
-                -- Compute viewport-centred offset position so draggify works correctly
-                local _vp = (ws.CurrentCamera and ws.CurrentCamera.ViewportSize) or Vector2.new(1920, 1080)
-                local _cx = math.floor((_vp.X - cfg.size.X.Offset) / 2)
-                local _cy = math.floor((_vp.Y - cfg.size.Y.Offset) / 2)
-
+                -- Create frame first (off-screen), then centre after render so ViewportSize is valid
                 items[ "main" ] = library:create( "Frame" , {
                     Parent = library[ "items" ];
                     Size = cfg.size;
                     Name = "\0";
-                    -- Pure offset position so draggify delta maths are always correct
                     AnchorPoint = Vector2.new(0, 0);
-                    Position = UDim2.fromOffset(_cx, _cy);
+                    Position = UDim2.fromOffset(-9999, -9999);   -- hidden until centred
                     BorderColor3 = rgb(0, 0, 0);
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(14, 14, 16);
                     BackgroundTransparency = 1;
                 })
-                -- Pop-in: fade + scale from 94%
-                items[ "main" ].Size = UDim2.fromOffset(
-                    math.floor(cfg.size.X.Offset * 0.94),
-                    math.floor(cfg.size.Y.Offset * 0.94)
-                )
-                -- Recentre after scale so it doesn't drift during pop
-                items[ "main" ].Position = UDim2.fromOffset(
-                    math.floor((_vp.X - cfg.size.X.Offset * 0.94) / 2),
-                    math.floor((_vp.Y - cfg.size.Y.Offset * 0.94) / 2)
-                )
+                -- Wait one frame so Roblox has flushed layout and ViewportSize is real
                 task.spawn(function()
-                    task.wait(0.05)
-                    library:tween(items[ "main" ], { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.32)
+                    game:GetService("RunService").RenderStepped:Wait()
+                    local cam = ws.CurrentCamera
+                    local vp = (cam and cam.ViewportSize.X > 0 and cam.ViewportSize) or Vector2.new(1920, 1080)
+                    local sw = cfg.size.X.Offset
+                    local sh = cfg.size.Y.Offset
+                    local cx = math.floor((vp.X - sw) / 2)
+                    local cy = math.floor((vp.Y - sh) / 2)
+                    -- Pop-in from 94%
+                    items[ "main" ].Size = UDim2.fromOffset(math.floor(sw * 0.94), math.floor(sh * 0.94))
+                    items[ "main" ].Position = UDim2.fromOffset(
+                        math.floor((vp.X - sw * 0.94) / 2),
+                        math.floor((vp.Y - sh * 0.94) / 2)
+                    )
+                    library:tween(items[ "main" ], { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.28)
                     library:tween(items[ "main" ], {
-                        Size = cfg.size,
-                        Position = UDim2.fromOffset(_cx, _cy)
-                    }, Enum.EasingStyle.Back, 0.44)
+                        Size = UDim2.fromOffset(sw, sh),
+                        Position = UDim2.fromOffset(cx, cy),
+                    }, Enum.EasingStyle.Back, 0.42)
                 end)
                 library._window_main_frame = items[ "main" ]
                 -- Register for AutoScale — mobile gets 0.72x base so 600px feels right on small screens
@@ -3119,20 +3120,24 @@
                 if bool then
                     library[ "items" ].Enabled = true
                     if main then
-                        local _vp2 = (ws.CurrentCamera and ws.CurrentCamera.ViewportSize) or Vector2.new(1920,1080)
-                        local _cx2 = math.floor((_vp2.X - cfg.size.X.Offset) / 2)
-                        local _cy2 = math.floor((_vp2.Y - cfg.size.Y.Offset) / 2)
-                        main.Size = UDim2.fromOffset(
-                            math.floor(cfg.size.X.Offset * 0.94),
-                            math.floor(cfg.size.Y.Offset * 0.94)
-                        )
+                        local cam = ws.CurrentCamera
+                        local vp2 = (cam and cam.ViewportSize.X > 0 and cam.ViewportSize) or Vector2.new(1920, 1080)
+                        local sw = cfg.size.X.Offset
+                        local sh = cfg.size.Y.Offset
+                        local cx2 = math.floor((vp2.X - sw) / 2)
+                        local cy2 = math.floor((vp2.Y - sh) / 2)
+                        -- If window was dragged, re-centre on re-open
+                        main.Size = UDim2.fromOffset(math.floor(sw * 0.94), math.floor(sh * 0.94))
                         main.Position = UDim2.fromOffset(
-                            math.floor((_vp2.X - cfg.size.X.Offset * 0.94) / 2),
-                            math.floor((_vp2.Y - cfg.size.Y.Offset * 0.94) / 2)
+                            math.floor((vp2.X - sw * 0.94) / 2),
+                            math.floor((vp2.Y - sh * 0.94) / 2)
                         )
                         main.BackgroundTransparency = 1
-                        library:tween(main, { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.32)
-                        library:tween(main, { Size = cfg.size, Position = UDim2.fromOffset(_cx2, _cy2) }, Enum.EasingStyle.Back, 0.44)
+                        library:tween(main, { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.28)
+                        library:tween(main, {
+                            Size = UDim2.fromOffset(sw, sh),
+                            Position = UDim2.fromOffset(cx2, cy2),
+                        }, Enum.EasingStyle.Back, 0.42)
                     end
                 else
                     if main then
@@ -3152,9 +3157,9 @@
                 end
             end
 
-            -- ── Toggle button (Mobile = draggable float, PC = fixed top-left) ──
+            -- ── Toggle + Lock buttons (Obsidian pattern) ─────────────────────
             do
-                -- Init btn_gui here if window() is called before add_draggable_button
+                -- Ensure btn_gui exists
                 if not library._btn_gui then
                     library._btn_gui = Instance.new("ScreenGui")
                     library._btn_gui.Name = "tokaihub_btns"
@@ -3171,23 +3176,24 @@
                     end)
                 end
 
+                -- Toggle button — shows/hides the menu (Obsidian: Library:Toggle)
                 local _toggleBtn = library:add_draggable_button(
-                    library._menuOpen and "✕ TOKAI" or "☰ TOKAI",
+                    "☰ TOKAI",
                     function() cfg.toggle_menu() end
                 )
                 _toggleBtn:set_position(6, 6)
 
-                -- On PC also add a Lock button below it (like obsidian)
-                local _lockBtn
-                if not library.IsMobile then
-                    _lockBtn = library:add_draggable_button("Lock", function(self)
+                -- Lock button — freezes drag (Obsidian: CantDragForced)
+                local _lockBtn = library:add_draggable_button(
+                    "Lock",
+                    function(self)
                         library._drag_locked = not library._drag_locked
                         self:set_text(library._drag_locked and "Unlock" or "Lock")
-                    end)
-                    _lockBtn:set_position(6, 46)
-                end
+                    end
+                )
+                _lockBtn:set_position(6, _toggleBtn.btn.AbsoluteSize.Y + 12)
 
-                -- Wrap toggle_menu to keep button label in sync
+                -- Keep toggle button text in sync with menu state
                 local _origToggle = cfg.toggle_menu
                 cfg.toggle_menu = function(bool)
                     _origToggle(bool)
@@ -3197,9 +3203,9 @@
                 end
 
                 library._toggle_btn = _toggleBtn
-                library._lock_btn = _lockBtn
+                library._lock_btn   = _lockBtn
             end
-            -- ─────────────────────────────────────────────────────────────────
+            -- ──────────────────────────────────────────────────────────────────
 
             return setmetatable(cfg, library)
         end
@@ -3966,22 +3972,26 @@
                 items[ "right_components" ] = library:create( "Frame" , {
                     Parent = items[ "toggle" ];
                     Name = "\0";
-                    Position = dim2(1, 0, 0, 0);
+                    AnchorPoint = Vector2.new(1, 0);
+                    Position = dim2(1, -5, 0, 0);
                     BorderColor3 = rgb(0, 0, 0);
                     Size = dim2(0, 0, 1, 0);
+                    AutomaticSize = Enum.AutomaticSize.X;
                     BorderSizePixel = 0;
+                    BackgroundTransparency = 1;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
                 
                 library:create( "UIListLayout" , {
                     FillDirection = Enum.FillDirection.Horizontal;
                     HorizontalAlignment = Enum.HorizontalAlignment.Right;
+                    VerticalAlignment = Enum.VerticalAlignment.Center;
                     Parent = items[ "right_components" ];
-                    Padding = dim(0, 9);
+                    Padding = dim(0, 6);
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
 
-                -- Toggle keybind pill (shows on the left of the toggle button)
+                -- Toggle keybind pill (Obsidian style — right-click for mode, left-click to rebind)
                 items[ "toggle_key_holder" ] = library:create( "TextButton" , {
                     FontFace = fonts.font;
                     TextColor3 = rgb(0, 0, 0);
@@ -3990,12 +4000,12 @@
                     Parent = items[ "right_components" ];
                     AutoButtonColor = false;
                     LayoutOrder = 1;
-                    Size = dim2(0, 0, 0, 16);
+                    Size = dim2(0, 0, 0, 18);
                     Name = "\0";
                     BorderSizePixel = 0;
                     AutomaticSize = Enum.AutomaticSize.X;
-                    Visible = cfg.key ~= nil;
-                    TextSize = 14;
+                    Visible = true;
+                    TextSize = 13;
                     BackgroundColor3 = rgb(33, 33, 35)
                 });
                 library:create( "UICorner" , {
