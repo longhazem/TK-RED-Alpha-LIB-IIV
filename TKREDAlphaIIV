@@ -505,60 +505,50 @@
             return (y_cond and x_cond)
         end
 
-        -- Unified drag: mouse (MB1) + touch — delta method, viewport-clamped
+        -- Obsidian MakeDraggable — direct copy, no tween, Input.Changed for release
         function library:draggify(frame, position_callback)
-            frame.Active = true
-            local dragging = false
-            local draggingInput = nil
-            local dragStart = nil
-            local frameStart = nil
+            local StartPos
+            local FramePos
+            local Dragging = false
+            local Changed
 
             frame.InputBegan:Connect(function(input)
-                if library._drag_locked then return end
                 local isMouse = input.UserInputType == Enum.UserInputType.MouseButton1
                 local isTouch = input.UserInputType == Enum.UserInputType.Touch
-                if not (isMouse or isTouch) then return end
+                if not (isMouse or isTouch) or library._drag_locked then return end
 
-                dragging = true
-                draggingInput = input
-                dragStart = input.Position
-                frameStart = frame.Position
+                StartPos = input.Position
+                FramePos = frame.Position
+                Dragging = true
 
-                local conn
-                conn = input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then
-                        dragging = false
-                        if conn and conn.Connected then conn:Disconnect() end
+                Changed = input.Changed:Connect(function()
+                    if input.UserInputState ~= Enum.UserInputState.End then return end
+                    Dragging = false
+                    if Changed and Changed.Connected then
+                        Changed:Disconnect()
+                        Changed = nil
                     end
                 end)
             end)
 
             library:connection(uis.InputChanged, function(input)
-                if not dragging or not draggingInput then return end
-                if library._drag_locked then dragging = false; return end
-
-                local isMoveMatch = (input.UserInputType == Enum.UserInputType.MouseMovement
-                    and draggingInput.UserInputType == Enum.UserInputType.MouseButton1)
-                local isTouchMatch = (input == draggingInput
-                    and input.UserInputType == Enum.UserInputType.Touch)
-                if not (isMoveMatch or isTouchMatch) then return end
-
-                local delta = input.Position - dragStart
-                camera = ws.CurrentCamera or camera
-                local vpX = camera.ViewportSize.X
-                local vpY = camera.ViewportSize.Y
-                local fSize = frame.AbsoluteSize
-                local rawX = frameStart.X.Offset + delta.X
-                local rawY = frameStart.Y.Offset + delta.Y
-                local newX = clamp(rawX, 0, max(0, vpX - fSize.X))
-                local newY = clamp(rawY, 0, max(0, vpY - fSize.Y))
-                local newPos = dim2(0, newX, 0, newY)
-
-                library:tween(frame, {Position = newPos}, Enum.EasingStyle.Linear, 0.05)
-                if type(position_callback) == "function" then
-                    position_callback(newPos)
+                if library._drag_locked then
+                    Dragging = false
+                    return
                 end
-                library:close_element()
+                local isMove = input.UserInputType == Enum.UserInputType.MouseMovement
+                local isTouch = input.UserInputType == Enum.UserInputType.Touch
+                if Dragging and (isMove or isTouch) then
+                    local Delta = input.Position - StartPos
+                    frame.Position = UDim2.new(
+                        FramePos.X.Scale, FramePos.X.Offset + Delta.X,
+                        FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y
+                    )
+                    if type(position_callback) == "function" then
+                        position_callback(frame.Position)
+                    end
+                    library:close_element()
+                end
             end)
         end
 
@@ -2819,12 +2809,11 @@
                     Parent = library[ "items" ];
                     Size = cfg.size;
                     Name = "\0";
-                    -- Obsidian centering: UDim2.new(0.5, -W/2, 0.5, -H/2)
+                    Visible = false;
                     Position = UDim2.new(0.5, -cfg.size.X.Offset / 2, 0.5, -cfg.size.Y.Offset / 2);
                     BorderColor3 = rgb(0, 0, 0);
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(14, 14, 16);
-                    BackgroundTransparency = 1;
                 })
                 library._window_main_frame = items[ "main" ]
                 -- Register for AutoScale — mobile gets 0.72x base so 600px feels right on small screens
@@ -3094,46 +3083,24 @@
 
             function cfg.toggle_menu(bool)
                 if bool == nil then
-                    bool = not library[ "items" ].Enabled
+                    bool = not items[ "main" ].Visible
                 end
-
-                local main = items[ "main" ]
-                if bool then
-                    library[ "items" ].Enabled = true
-                    if main then
-                        main.BackgroundTransparency = 1
-                        main.Position = UDim2.new(0.5, -cfg.size.X.Offset / 2, 0.5, -cfg.size.Y.Offset / 2)
-                        main.Size = cfg.size
-                        library:tween(main, { BackgroundTransparency = 0 }, Enum.EasingStyle.Quint, 0.25)
-                    end
-                else
-                    if main then
-                        library:tween(main, {
-                            BackgroundTransparency = 1,
-                            Size = UDim2.fromOffset(
-                                math.floor(cfg.size.X.Offset * 0.94),
-                                math.floor(cfg.size.Y.Offset * 0.94)
-                            )
-                        }, Enum.EasingStyle.Quint, 0.22)
-                        task.delay(0.22, function()
-                            library[ "items" ].Enabled = false
-                        end)
-                    else
-                        library[ "items" ].Enabled = false
-                    end
-                end
+                -- Obsidian: just toggle Visible, position never changes after initial center
+                items[ "main" ].Visible = bool == true
             end
 
-            -- ── Toggle + Lock buttons (Obsidian pattern) ─────────────────────
-            do
-                -- Ensure btn_gui exists
+            -- ── AutoShow (Obsidian: task.spawn Toggle) ───────────────────────
+            task.spawn(function() cfg.toggle_menu(true) end)
+
+            -- ── Toggle + Lock buttons (Obsidian: only on mobile) ─────────────
+            if library.IsMobile then
                 if not library._btn_gui then
                     library._btn_gui = Instance.new("ScreenGui")
                     library._btn_gui.Name = "tokaihub_btns"
                     library._btn_gui.Enabled = true
                     library._btn_gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-                    library._btn_gui.IgnoreGuiInset = true
-                    library._btn_gui.DisplayOrder = 100
+                    library._btn_gui.IgnoreGuiInset = false
+                    library._btn_gui.DisplayOrder = 999
                     pcall(function()
                         if type(gethui) == "function" then
                             library._btn_gui.Parent = gethui()
@@ -3143,36 +3110,21 @@
                     end)
                 end
 
-                -- Toggle button — shows/hides the menu (Obsidian: Library:Toggle)
-                local _toggleBtn = library:add_draggable_button(
-                    "☰ TOKAI",
-                    function() cfg.toggle_menu() end
-                )
+                local _toggleBtn = library:add_draggable_button("Toggle", function()
+                    cfg.toggle_menu()
+                end)
                 _toggleBtn:set_position(6, 6)
 
-                -- Lock button — freezes drag (Obsidian: CantDragForced)
-                local _lockBtn = library:add_draggable_button(
-                    "Lock",
-                    function(self)
-                        library._drag_locked = not library._drag_locked
-                        self:set_text(library._drag_locked and "Unlock" or "Lock")
-                    end
-                )
-                _lockBtn:set_position(6, _toggleBtn.btn.AbsoluteSize.Y + 12)
-
-                -- Keep toggle button text in sync with menu state
-                local _origToggle = cfg.toggle_menu
-                cfg.toggle_menu = function(bool)
-                    _origToggle(bool)
-                    local isOpen = library["items"].Enabled
-                    library._menuOpen = isOpen
-                    _toggleBtn:set_text(isOpen and "✕ TOKAI" or "☰ TOKAI")
-                end
+                local _lockBtn = library:add_draggable_button("Lock", function(self)
+                    library._drag_locked = not library._drag_locked
+                    self:set_text(library._drag_locked and "Unlock" or "Lock")
+                end)
+                _lockBtn:set_position(6, 38)
 
                 library._toggle_btn = _toggleBtn
                 library._lock_btn   = _lockBtn
             end
-            -- ──────────────────────────────────────────────────────────────────
+            -- ─────────────────────────────────────────────────────────────────
 
             return setmetatable(cfg, library)
         end
