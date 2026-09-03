@@ -1,20 +1,48 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV"))()
+-- Compatibility shims (Delta mobile support)
+if not cloneref then cloneref = function(x) return x end end
+if not gethui then gethui = function() return game:GetService("CoreGui") end end
+if not protect_gui then protect_gui = function() end end
+if not isfile then isfile = function() return false end end
+if not readfile then readfile = function() return "" end end
+if not writefile then writefile = function() end end
+if not makefolder then makefolder = function() end end
+if not listfiles then listfiles = function() return {} end end
+if not getcustomasset then getcustomasset = function(p) return "rbxassetid://0" end end
 
--- Library tự set getgenv().library — dùng thẳng global
+-- HTTP layer
+local function GET(url)
+    if type(request) == "function" then
+        local ok, r = pcall(request, {Url=url, Method="GET"})
+        if ok and r and r.Body and #r.Body > 0 then return r.Body end
+    end
+    if type(http_request) == "function" then
+        local ok, r = pcall(http_request, {Url=url, Method="GET"})
+        if ok and r and r.Body and #r.Body > 0 then return r.Body end
+    end
+    if type(syn) == "table" and type(syn.request) == "function" then
+        local ok, r = pcall(syn.request, {Url=url, Method="GET"})
+        if ok and r and r.Body and #r.Body > 0 then return r.Body end
+    end
+    return game:HttpGet(url)
+end
+
+local src = GET("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV")
+assert(src and #src > 100, "TokaiHub: failed to fetch library")
+loadstring(src)()
+
+-- ─── Script ───────────────────────────────────────────────────────────
 local window = library:window({
     name = "TokaiHub",
     suffix = "",
     gameInfo = "TokaiHub — All Devices"
 })
 
--- ── Mobile toggle button ──────────────────────────────────────────────
 if library.IsMobile then
     library:add_draggable_button("☰ Menu", function()
         window.toggle_menu()
     end)
 end
 
--- ── Tabs ──────────────────────────────────────────────────────────────
 window:seperator({name = "Combat"})
 
 local enemies, teammates, self_tab = window:tab({
@@ -25,15 +53,12 @@ local enemies, teammates, self_tab = window:tab({
 
 for _, tab in {enemies, teammates, self_tab} do
     local page = tab:sub_tab({order = -10000, size = 2})
-
     for i = 1, 2 do
         local col = page:column({})
         local sec = col:section({name = "ESP", default = true})
-
         sec:toggle({name = "Enable ESP", seperator = true, flag = "esp_enabled", callback = function(v) print("ESP:", v) end})
         sec:toggle({name = "Through Walls", seperator = true, flag = "esp_walls"})
         sec:toggle({name = "Shared ESP", seperator = true, flag = "esp_shared"}):colorpicker({flag = "esp_color"})
-
         local nameTog = sec:toggle({name = "Name Tag", seperator = true, flag = "esp_nametag"})
         nameTog:colorpicker({flag = "esp_nametag_color"})
         local sub = nameTog:settings({})
@@ -41,21 +66,12 @@ for _, tab in {enemies, teammates, self_tab} do
         sub:dropdown({name = "Font", items = {"ProggyTiny", "MonoSpace", "Tahoma"}, default = "MonoSpace", seperator = true, flag = "esp_font"})
         sub:colorpicker({name = "Outline Color", seperator = true, flag = "esp_outline_col"})
         sub:keybind({name = "Toggle Key", flag = "esp_toggle_key", callback = function(v) print("ESP toggled:", v) end})
-
         sec:toggle({name = "Weapon", seperator = true, flag = "esp_weapon"}):colorpicker({flag = "esp_weapon_color"})
-        sec:dropdown({
-            name = "Flags",
-            items = {"Scoped", "Flashed", "Knocked", "Touched"},
-            default = {"Scoped", "Flashed"},
-            multi = true,
-            seperator = true,
-            flag = "esp_flags"
-        })
+        sec:dropdown({name = "Flags", items = {"Scoped","Flashed","Knocked","Touched"}, default = {"Scoped","Flashed"}, multi = true, seperator = true, flag = "esp_flags"})
         sec:toggle({name = "Skeleton", seperator = false, flag = "esp_skeleton"})
     end
 end
 
--- ── Aimbot ────────────────────────────────────────────────────────────
 window:seperator({name = "Aimbot"})
 
 local aim_main, aim_cfg = window:tab({
@@ -72,21 +88,15 @@ do
     sec:slider({name = "Smoothness", min = 0, max = 100, default = 50, suffix = "%", flag = "aim_smooth"})
     sec:dropdown({name = "Hitbox", items = {"Head", "Torso", "Nearest"}, default = "Head", flag = "aim_part"})
     sec:keybind({name = "Aim Key", flag = "aim_key", key = Enum.KeyCode.Q, callback = function(v) print("Holding:", v) end})
-
     local col2 = aim_main:column({})
     local sec2 = col2:section({name = "Prediction", default = true})
     sec2:toggle({name = "Bullet Prediction", seperator = true, flag = "aim_pred"})
     sec2:slider({name = "Velocity Scale", min = 0, max = 200, default = 100, suffix = "%", flag = "aim_vel"})
 end
 
--- ── Misc ──────────────────────────────────────────────────────────────
 window:seperator({name = "Misc"})
 
-local misc = window:tab({
-    name = "Misc",
-    icon = "rbxassetid://6034509993",
-    tabs = {"Main"}
-})
+local misc = window:tab({name = "Misc", icon = "rbxassetid://6034509993", tabs = {"Main"}})
 
 do
     local col = misc:column({})
@@ -103,7 +113,6 @@ do
         if hum then hum.WalkSpeed = v end
     end})
     sec:toggle({name = "No Clip", seperator = false, flag = "noclip"})
-
     local col2 = misc:column({})
     local sec2 = col2:section({name = "HUD", default = true})
     sec2:toggle({name = "Info Panel", seperator = true, flag = "hud_info", callback = function(v)
@@ -114,20 +123,12 @@ do
     end})
 end
 
--- ── Config + Settings ─────────────────────────────────────────────────
 library:init_config(window)
 
--- ── Defaults ──────────────────────────────────────────────────────────
-library:info_list({
-    enabled = true,
-    corner = "Top Right",
-    watermark = "TokaiHub",
-    items = {fps = true, ping = true, username = true, time = true}
-})
-
+library:info_list({enabled = true, corner = "Top Right", watermark = "TokaiHub", items = {fps=true, ping=true, username=true, time=true}})
 library:keybind_list({enabled = true, mode = "All"})
 
 pcall(function()
     local loaded = library:load_autoload_config()
-    if loaded then print("TokaiHub: loaded config →", loaded) end
+    if loaded then print("TokaiHub: config loaded →", loaded) end
 end)
