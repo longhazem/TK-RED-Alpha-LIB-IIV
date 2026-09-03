@@ -1,359 +1,134 @@
---[[
-    TOKAIHUB - File thử nghiệm v2
-    Tác giả: @longtokai
-    Thử nghiệm: @dokkimane
-]]
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV"))()
 
--- ── HTTP loader tương thích mọi executor ─────────────────────────────
-local function GetLoadstringSource(Url)
-    local function tryRequest(fn, args)
-        if not fn then return nil end
-        local ok, r = pcall(fn, args)
-        if ok and r and r.Body and typeof(r.Body) == "string" then return r.Body end
-    end
-    local body = tryRequest(request,                           {Url=Url,Method="GET"})
-        or tryRequest(http_request,                            {Url=Url,Method="GET"})
-        or tryRequest(syn and syn.request,                     {Url=Url,Method="GET"})
-        or tryRequest(fluxus and fluxus.request,               {Url=Url,Method="GET"})
-    if not body then
-        local ok, r = pcall(function() return game:HttpGet(Url) end)
-        if ok and typeof(r) == "string" then
-            body = r
-        elseif ok and typeof(r) == "Instance" then
-            local iok, src = pcall(function() return r.Source end)
-            if iok and typeof(src) == "string" then body = src end
-        end
-    end
-    if not body then
-        error("[TokaiHub] HTTP that bai: " .. tostring(Url), 2)
-    end
-    if body:match("^429") or body:lower():match("rate limit") then
-        warn("[TokaiHub] Rate limit — cho 10s roi thu lai")
-        task.wait(10)
-        return GetLoadstringSource(Url)
-    end
-    if body:match("^<!DOCTYPE") or body:match("^<html") then
-        error("[TokaiHub] Server tra ve HTML — URL sai hoac repo loi", 2)
-    end
-    return body
-end
-
-local LIB_URL = "https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV"
-
-local library = loadstring(GetLoadstringSource(LIB_URL))()
-assert(library, "[TokaiHub] Library load that bai")
-
--- ── Window ────────────────────────────────────────────────────────────
 local window = library:window({
-    name     = "TOKAI",
-    suffix   = "HUB",
-    gameInfo = "TOKAIHUB",
-})
-window:seperator({ name = "Test v2" })
-
--- ── Watermark ─────────────────────────────────────────────────────────
-local indicator = library:create_indicator({
-    name    = "TOKAIHUB | Test",
-    color   = Color3.fromRGB(138, 154, 91),
-    visible = true,
+    name = "TokaiHub",
+    suffix = "",
+    gameInfo = "TokaiHub — All Devices"
 })
 
-local function notify(title, msg, t)
-    library:notify(title, msg, t or 3)
+-- ── Mobile toggle button (chỉ hiện trên mobile) ───────────────────────
+if library.IsMobile then
+    library:add_draggable_button("☰ Menu", function()
+        window.toggle_menu()
+    end)
 end
 
--- ════════════════════════════════════════════════════════════════════ --
--- Tab 1: UI Elements
--- ════════════════════════════════════════════════════════════════════ --
-local ui_tab = window:tab({ name = "UI" })
-local col_l  = ui_tab:column({})
-local col_r  = ui_tab:column({})
+-- ── Tabs ──────────────────────────────────────────────────────────────
+window:seperator({name = "Combat"})
 
--- Cột trái
-local sec_basic = col_l:section({ name = "Cơ Bản", default = true })
-
-sec_basic:label({ name = "Toggle + Colorpicker", info = "Bấm nút màu để mở colorpicker" })
-local tog_color = sec_basic:toggle({
-    name = "Bật màu accent",
-    default = true,
-    seperator = true,
-    callback = function(v) notify("Toggle", "Màu accent: " .. tostring(v)) end
+local enemies, teammates, self_tab = window:tab({
+    name = "Visuals",
+    icon = "rbxassetid://6034767608",
+    tabs = {"Enemies", "Teammates", "Self"}
 })
-tog_color:colorpicker({
-    default  = Color3.fromRGB(138, 154, 91),
-    callback = function(c)
-        library:set_accent_color(c)
+
+for _, tab in {enemies, teammates, self_tab} do
+    local page = tab:sub_tab({order = -10000, size = 2})
+
+    for i = 1, 2 do
+        local col = page:column({})
+        local sec = col:section({name = "ESP", default = true})
+
+        sec:toggle({name = "Enable ESP", seperator = true, flag = "esp_enabled", callback = function(v) print("ESP:", v) end})
+        sec:toggle({name = "Through Walls", seperator = true, flag = "esp_walls"})
+        sec:toggle({name = "Shared ESP", seperator = true, flag = "esp_shared"}):colorpicker({flag = "esp_color"})
+
+        local nameTog = sec:toggle({name = "Name Tag", seperator = true, flag = "esp_nametag"})
+        nameTog:colorpicker({flag = "esp_nametag_color"})
+        local sub = nameTog:settings({})
+        sub:toggle({name = "Show Display Name", seperator = true, flag = "esp_displayname"})
+        sub:dropdown({name = "Font", items = {"ProggyTiny", "MonoSpace", "Tahoma"}, default = "MonoSpace", seperator = true, flag = "esp_font"})
+        sub:colorpicker({name = "Outline Color", seperator = true, flag = "esp_outline_col"})
+        sub:keybind({name = "Toggle Key", flag = "esp_toggle_key", callback = function(v) print("ESP toggled:", v) end})
+
+        sec:toggle({name = "Weapon", seperator = true, flag = "esp_weapon"}):colorpicker({flag = "esp_weapon_color"})
+        sec:dropdown({
+            name = "Flags",
+            items = {"Scoped", "Flashed", "Knocked", "Touched"},
+            default = {"Scoped", "Flashed"},
+            multi = true,
+            seperator = true,
+            flag = "esp_flags"
+        })
+        sec:toggle({name = "Skeleton", seperator = false, flag = "esp_skeleton"})
     end
+end
+
+-- ── Aimbot ────────────────────────────────────────────────────────────
+window:seperator({name = "Aimbot"})
+
+local aim_main, aim_cfg = window:tab({
+    name = "Aimbot",
+    icon = "rbxassetid://6031094667",
+    tabs = {"Main", "Config"}
 })
 
-sec_basic:slider({
-    name = "WalkSpeed", min = 0, max = 500, default = 16, round = 1,
-    suffix = " studs/s", seperator = true,
-    callback = function(v)
-        local char = game.Players.LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
+do
+    local col = aim_main:column({})
+    local sec = col:section({name = "Aimbot", default = true})
+    sec:toggle({name = "Enable", seperator = true, flag = "aim_on", callback = function(v) print("Aim:", v) end})
+    sec:slider({name = "FOV", min = 1, max = 360, default = 90, suffix = "°", flag = "aim_fov"})
+    sec:slider({name = "Smoothness", min = 0, max = 100, default = 50, suffix = "%", flag = "aim_smooth"})
+    sec:dropdown({name = "Hitbox", items = {"Head", "Torso", "Nearest"}, default = "Head", flag = "aim_part"})
+    sec:keybind({name = "Aim Key", flag = "aim_key", key = Enum.KeyCode.Q, callback = function(v) print("Holding:", v) end})
+
+    local col2 = aim_main:column({})
+    local sec2 = col2:section({name = "Prediction", default = true})
+    sec2:toggle({name = "Bullet Prediction", seperator = true, flag = "aim_pred"})
+    sec2:slider({name = "Velocity Scale", min = 0, max = 200, default = 100, suffix = "%", flag = "aim_vel"})
+end
+
+-- ── Misc ──────────────────────────────────────────────────────────────
+window:seperator({name = "Misc"})
+
+local misc = window:tab({
+    name = "Misc",
+    icon = "rbxassetid://6034509993",
+    tabs = {"Main"}
+})
+
+do
+    local col = misc:column({})
+    local sec = col:section({name = "Movement", default = true})
+    sec:toggle({name = "Infinite Jump", seperator = true, flag = "inf_jump", callback = function(v)
+        if v then
+            game:GetService("UserInputService").JumpRequest:Connect(function()
+                game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+            end)
+        end
+    end})
+    sec:slider({name = "Walk Speed", min = 16, max = 200, default = 16, flag = "wspd", callback = function(v)
+        local hum = game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hum then hum.WalkSpeed = v end
-    end
-})
+    end})
+    sec:toggle({name = "No Clip", seperator = false, flag = "noclip"})
 
-sec_basic:slider({
-    name = "JumpPower", min = 0, max = 500, default = 50, round = 1,
-    seperator = true,
-    callback = function(v)
-        local char = game.Players.LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.JumpPower = v end
-    end
-})
+    local col2 = misc:column({})
+    local sec2 = col2:section({name = "HUD", default = true})
+    sec2:toggle({name = "Info Panel", seperator = true, flag = "hud_info", callback = function(v)
+        library:info_list({enabled = v, watermark = "TokaiHub", items = {fps=true, ping=true, username=true, session=true}})
+    end})
+    sec2:toggle({name = "Keybind List", seperator = false, flag = "hud_kb", callback = function(v)
+        library:keybind_list({enabled = v})
+    end})
+end
 
-sec_basic:toggle({
-    name = "Infinite Jump",
-    default = false,
-    seperator = true,
-    callback = function(v)
-        getgenv().TK_InfJump = v
-        if v then
-            if not getgenv().TK_InfJumpConn then
-                getgenv().TK_InfJumpConn = game:GetService("UserInputService").JumpRequest:Connect(function()
-                    if getgenv().TK_InfJump then
-                        local char = game.Players.LocalPlayer.Character
-                        local hum = char and char:FindFirstChildOfClass("Humanoid")
-                        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-                    end
-                end)
-            end
-        end
-        notify("Jump", v and "Bật Infinite Jump" or "Tắt Infinite Jump")
-    end
-})
+-- ── Config + Settings ─────────────────────────────────────────────────
+library:init_config(window)
 
-sec_basic:toggle({
-    name = "Noclip",
-    default = false,
-    seperator = true,
-    callback = function(v)
-        getgenv().TK_Noclip = v
-        if v then
-            if not getgenv().TK_NoclipConn then
-                getgenv().TK_NoclipConn = game:GetService("RunService").Stepped:Connect(function()
-                    if getgenv().TK_Noclip then
-                        local char = game.Players.LocalPlayer.Character
-                        if char then
-                            for _, p in char:GetDescendants() do
-                                if p:IsA("BasePart") then
-                                    p.CanCollide = false
-                                end
-                            end
-                        end
-                    end
-                end)
-            end
-        end
-        notify("Noclip", v and "Bật Noclip" or "Tắt Noclip")
-    end
-})
-
-sec_basic:keybind({
-    name = "Phím ẩn UI",
-    default = Enum.KeyCode.RightShift,
-    seperator = true,
-    callback = function(v) notify("Keybind", "Ẩn/hiện UI: " .. tostring(v)) end
-})
-
-sec_basic:button({
-    name = "Respawn",
-    callback = function()
-        game.Players.LocalPlayer:LoadCharacter()
-        notify("Player", "Đã respawn!")
-    end
-})
-
--- Cột phải
-local sec_adv = col_r:section({ name = "Nâng Cao", default = true })
-
-sec_adv:label({ name = "Toggle có sub-settings" })
-local tog_aim = sec_adv:toggle({
-    name = "Aimbot (demo)",
-    default = false,
-    seperator = true,
-    callback = function(v) notify("Aimbot", v and "Bật" or "Tắt") end
-})
-local sub = tog_aim:settings({})
-sub:slider({ name = "FOV",        min = 1,   max = 360, default = 90,   seperator = true })
-sub:slider({ name = "Smoothing",  min = 0,   max = 100, default = 25,   seperator = true })
-sub:slider({ name = "Prediction", min = 0,   max = 1,   default = 0.15, round = 0.01, seperator = true })
-sub:dropdown({ name = "Bone",   items = { "Head", "Neck", "Torso", "HumanoidRootPart" }, default = "Head", seperator = true })
-sub:toggle({ name = "Silent Aim",     default = false, seperator = true })
-sub:toggle({ name = "Visible Check",  default = true,  seperator = true })
-sub:keybind({ name = "Aim Key",       default = Enum.UserInputType.MouseButton2 })
-
-sec_adv:dropdown({
-    name = "Chế độ",
-    items = { "Legit", "Rage", "Silent", "Auto" },
-    default = "Legit",
-    seperator = true,
-    callback = function(v) notify("Mode", "Chế độ: " .. v) end
-})
-
-sec_adv:dropdown({
-    name = "ESP Parts (multi)",
-    items = { "Head", "Torso", "Arms", "Legs", "HRP" },
-    default = { "Head", "Torso" },
-    multi = true,
-    seperator = true,
-})
-
-sec_adv:textbox({
-    name = "Target Name",
-    default = "",
-    placeholder = "Tên người chơi...",
-    seperator = true,
-    callback = function(v) notify("Target", "Target: " .. v) end
-})
-
-sec_adv:button({
-    name = "Copy Job ID",
-    callback = function()
-        pcall(function() setclipboard(game.JobId) end)
-        notify("Misc", "Job ID đã copy!")
-    end
-})
-
-sec_adv:button({
-    name = "Test Notification",
-    callback = function()
-        notify("TOKAIHUB", "Notification hoạt động!", 4)
-    end
-})
-
--- ════════════════════════════════════════════════════════════════════ --
--- Tab 2: Điều Chỉnh
--- ════════════════════════════════════════════════════════════════════ --
-local adj_tab = window:tab({ name = "Điều Chỉnh" })
-local adj_l   = adj_tab:column({})
-local adj_r   = adj_tab:column({})
-
-local sec_accent = adj_l:section({ name = "Màu Accent", default = true })
-sec_accent:label({ name = "Đổi màu toàn bộ UI" })
-
-local preset_colors = {
-    { name = "Mặc định (Xanh rêu)", color = Color3.fromRGB(138, 154, 91)  },
-    { name = "Xanh dương",           color = Color3.fromRGB(100, 160, 255) },
-    { name = "Tím",                   color = Color3.fromRGB(160, 100, 255) },
-    { name = "Đỏ",                    color = Color3.fromRGB(255, 80,  80 ) },
-    { name = "Xanh lá",               color = Color3.fromRGB(80,  220, 120) },
-    { name = "Vàng cam",              color = Color3.fromRGB(255, 175, 50 ) },
-    { name = "Hồng",                  color = Color3.fromRGB(255, 120, 180) },
-    { name = "Trắng",                 color = Color3.fromRGB(220, 220, 220) },
-}
-local color_names = {}
-for _, v in preset_colors do table.insert(color_names, v.name) end
-
-sec_accent:dropdown({
-    name = "Preset màu",
-    items = color_names,
-    default = "Mặc định (Xanh rêu)",
-    seperator = true,
-    callback = function(v)
-        for _, p in preset_colors do
-            if p.name == v then
-                library:set_accent_color(p.color)
-                break
-            end
-        end
-    end
-})
-
-sec_accent:colorpicker({
-    name = "Màu tùy chỉnh",
-    default = Color3.fromRGB(138, 154, 91),
-    seperator = true,
-    callback = function(c)
-        library:set_accent_color(c)
-    end
-})
-
-local sec_scale = adj_l:section({ name = "AutoScale", default = true })
-sec_scale:toggle({
-    name = "Bật AutoScale",
-    default = true,
-    seperator = true,
-    callback = function(v) library:SetAutoScaleEnabled(v) end
-})
-sec_scale:slider({
-    name = "Scale multiplier",
-    min = 0.5, max = 2.0, default = 1.0, round = 0.05,
-    seperator = true,
-    callback = function(v) library:SetAutoScaleMultiplier(v) end
-})
-
--- Watermark section removed (indicator đã bị bỏ)
-
--- Info panel (FPS, Ping, User...)
+-- ── Info panel mặc định ───────────────────────────────────────────────
 library:info_list({
     enabled = true,
-    corner  = "Top Right",
-    width   = 200,
-    watermark = "TOKAIHUB",
-    items = {
-        fps      = true,
-        ping     = true,
-        username = true,
-        session  = true,
-        time     = false,
-    },
+    corner = "Top Right",
+    watermark = "TokaiHub",
+    items = {fps = true, ping = true, username = true, time = true}
 })
 
--- ════════════════════════════════════════════════════════════════════ --
--- Tab 3: Thông Tin
--- ════════════════════════════════════════════════════════════════════ --
-local info_tab = window:tab({ name = "Thông Tin" })
-local info_col = info_tab:column({})
-local sec_sys  = info_col:section({ name = "Hệ Thống", default = true })
+-- ── Keybind list mặc định ─────────────────────────────────────────────
+library:keybind_list({enabled = true, mode = "All"})
 
-local plr    = game.Players.LocalPlayer
-local device = library.IsMobile and "📱 Mobile" or "🖥️ PC"
-
-sec_sys:label({ name = "Thiết bị: " .. device })
-sec_sys:label({ name = "Tên: " .. plr.Name })
-sec_sys:label({ name = "ID: " .. plr.UserId })
-
-local sec_game = info_col:section({ name = "Game", default = true })
-sec_game:label({ name = "PlaceId: " .. game.PlaceId })
-sec_game:label({ name = "JobId: " .. tostring(game.JobId):sub(1, 16) .. "..." })
-
-local info_col2 = info_tab:column({})
-local sec_keybinds = info_col2:section({ name = "Keybind List", default = true })
-sec_keybinds:label({ name = "Hiển thị danh sách keybind ở góc màn hình" })
-sec_keybinds:toggle({
-    name = "Bật Keybind List",
-    default = true,
-    seperator = true,
-    callback = function(v)
-        library:keybind_list({ enabled = v })
-    end
-})
-sec_keybinds:dropdown({
-    name = "Chế độ hiển thị",
-    items = { "All", "Active" },
-    default = "All",
-    seperator = true,
-    callback = function(v)
-        library:keybind_list({ mode = v })
-    end
-})
-
--- Keybind list mặc định
-library:keybind_list({
-    enabled      = true,
-    mode         = "All",
-    show_unbound = false,
-    width        = 215,
-})
-
--- ── Load xong ─────────────────────────────────────────────────────────
-task.delay(2.5, function()
-    notify("TOKAIHUB", "Load xong! " .. device .. " | " .. plr.Name, 5)
+-- ── Load config tự động nếu có ───────────────────────────────────────
+pcall(function()
+    local loaded = library:load_autoload_config()
+    if loaded then print("TokaiHub: loaded config →", loaded) end
 end)
-
-print("[TOKAIHUB] Test v2 running | IsMobile:", library.IsMobile)
