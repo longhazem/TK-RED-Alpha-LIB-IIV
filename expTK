@@ -1,12 +1,13 @@
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/longhazem/TK-RED-Alpha-LIB-IIV/refs/heads/main/TKREDAlphaIIV"))()
 
+-- Library tự set getgenv().library — dùng thẳng global
 local window = library:window({
     name = "TokaiHub",
     suffix = "",
     gameInfo = "TokaiHub — All Devices"
 })
 
--- ── Mobile toggle button (chỉ hiện trên mobile) ───────────────────────
+-- ── Mobile toggle button ──────────────────────────────────────────────
 if library.IsMobile then
     library:add_draggable_button("☰ Menu", function()
         window.toggle_menu()
@@ -116,7 +117,7 @@ end
 -- ── Config + Settings ─────────────────────────────────────────────────
 library:init_config(window)
 
--- ── Info panel mặc định ───────────────────────────────────────────────
+-- ── Defaults ──────────────────────────────────────────────────────────
 library:info_list({
     enabled = true,
     corner = "Top Right",
@@ -124,10 +125,8 @@ library:info_list({
     items = {fps = true, ping = true, username = true, time = true}
 })
 
--- ── Keybind list mặc định ─────────────────────────────────────────────
 library:keybind_list({enabled = true, mode = "All"})
 
--- ── Load config tự động nếu có ───────────────────────────────────────
 pcall(function()
     local loaded = library:load_autoload_config()
     if loaded then print("TokaiHub: loaded config →", loaded) end
