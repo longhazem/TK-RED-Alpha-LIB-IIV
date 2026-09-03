@@ -1,13 +1,14 @@
--- Compatibility shims (Delta mobile support)
-if not cloneref then cloneref = function(x) return x end end
-if not gethui then gethui = function() return game:GetService("CoreGui") end end
-if not protect_gui then protect_gui = function() end end
-if not isfile then isfile = function() return false end end
-if not readfile then readfile = function() return "" end end
-if not writefile then writefile = function() end end
-if not makefolder then makefolder = function() end end
-if not listfiles then listfiles = function() return {} end end
-if not getcustomasset then getcustomasset = function(p) return "rbxassetid://0" end end
+-- Shims vào getgenv() — visible cho loadstring chunks (Delta mobile)
+local genv = getgenv()
+if not genv.cloneref then genv.cloneref = function(x) return x end end
+if not genv.gethui then genv.gethui = function() return game:GetService("CoreGui") end end
+if not genv.protect_gui then genv.protect_gui = function() end end
+if not genv.isfile then genv.isfile = function() return false end end
+if not genv.readfile then genv.readfile = function() return "" end end
+if not genv.writefile then genv.writefile = function() end end
+if not genv.makefolder then genv.makefolder = function() end end
+if not genv.listfiles then genv.listfiles = function() return {} end end
+if not genv.getcustomasset then genv.getcustomasset = function() return "rbxassetid://0" end end
 
 -- HTTP layer
 local function GET(url)
